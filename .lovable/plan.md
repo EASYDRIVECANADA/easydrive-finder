@@ -1,47 +1,46 @@
 
 
-## Rebuild from EasyDriveCanada source code
+## Status: source doesn't contain the DMS
 
-If you can share the real codebase, I'll mirror its DMS structure into this clone exactly.
+I checked both sources you have available:
 
-### What to share (best → acceptable)
+**1. Workspace project `easydrive-marketplace`** — readable, but it only contains:
+- `src/pages/Index.tsx` + `NotFound.tsx`
+- `src/components/Navbar.tsx`, `VehicleCard.tsx`, `VehicleCarousel.tsx`
+- Standard Vite + react-router-dom + shadcn starter
 
-1. **GitHub repo access** (best) — Add the Lovable GitHub app or invite a collaborator to a private repo. I can then read every file directly via `cross_project` tools or by you connecting it to a Lovable project I can read from.
-2. **ZIP of the repo** — Export from GitHub (Code → Download ZIP) or your local folder, upload here. I'll unzip and read it.
-3. **Netlify/Vercel build output** — Less useful (minified, no source). Only helpful if source is unavailable.
-4. **Specific files pasted in chat** — Works for small targeted pieces (e.g. just the Bill of Sale component).
+No dealer portal, no inventory management, no bill of sale, no leads/customers/sales/employees screens. This is an early marketing prototype, not the live DMS.
 
-### What I'll extract from the source
+**2. GitHub repo `EASYDRIVECANADA/easydrivecanadav2-master`** — exists but I can only see the public GitHub page chrome, not file contents (private repo or my fetch tool can't auth against it).
 
-- **Routes/pages**: full list of DMS screens and their URL structure
-- **Components**: real component names, props, layout structure for Inventory table, BoS form, Reports, etc.
-- **Forms**: exact field names, validation, step order (especially Bill of Sale)
-- **Data models**: vehicle/customer/lead/sale shapes → update `src/data/*.ts` to match
-- **Styling**: real color tokens, fonts, spacing, logo asset
-- **Sidebar nav**: exact labels, icons, grouping, order
+### What this means
 
-### What I'll do with it
+The DMS shown in your screenshot is not in either source I can access. So I can't mirror real layouts/fields from code.
 
-1. Catalog every DMS route + its component tree.
-2. Update `src/data/*.ts` mock data to match real schemas (same field names/types).
-3. Rewrite each `/dealer/*` route file to mirror the real screen's layout, columns, form fields, and copy.
-4. Update `DealerSidebar.tsx` nav to match real order/labels/icons.
-5. Pull the real logo + color values into `EdcLogo.tsx` and `src/styles.css`.
-6. Keep everything mock-only — no real API calls, no DB, no auth (per original plan).
+### Options to move forward (pick one)
 
-### What I won't copy
+**A. Connect the GitHub repo to this Lovable project's workspace**
+- In Lovable: open the GitHub repo URL, remix it into your workspace, OR create a new Lovable project and connect/import the repo.
+- Once it shows up under `cross_project--search_project`, I can read every file directly and mirror the DMS exactly.
 
-- Backend/server code, API routes, database schemas, env files, secrets
-- Auth logic (still mock login)
-- Any proprietary integrations (payment processors, e-sign vendors, credit bureaus)
-- License-restricted assets (only fonts/icons/images you have rights to)
+**B. Upload a ZIP of the repo here**
+- Download from GitHub (Code → Download ZIP) and drag into chat.
+- I'll unzip, catalog every DMS screen, then rewrite the `/dealer/*` routes to match.
 
-### How to share
+**C. Paste the key DMS files**
+- Open the repo and paste the contents of (at minimum):
+  - The dealer/admin route files (whatever holds inventory, sales, leads, etc.)
+  - The data models / TypeScript types for Vehicle, Customer, Lead, Sale, Employee
+  - The sidebar/nav component
+  - The Bill of Sale form component
+- I'll mirror those into this project.
 
-Pick one and tell me which:
-- **A**: I'll add the Lovable GitHub app to the EDC repo (you give me the org/repo name once connected)
-- **B**: You upload a ZIP of the repo to this chat
-- **C**: You paste specific files (tell me which screens to prioritize)
+**D. Use the workspace marketing prototype only**
+- I pull the Navbar, VehicleCard, VehicleCarousel, Index layout from `easydrive-marketplace` into this project's marketing pages so at least the public site matches. DMS stays as the current best-guess mock.
 
-Also confirm: any folders/files to skip (e.g. `/server`, `/api`, `.env*`, payment integration code)?
+### Recommendation
+
+Option **A** or **B** — they're the only way to actually mirror the real DMS. Option C works if the DMS is just a few files. Option D is a partial improvement (marketing only).
+
+Reply with which one, and for B/C, attach the files.
 
