@@ -55,6 +55,7 @@ export function MarketingHeader() {
             <div className="px-1 pb-2">
               <AccountTypeSwitcher compact />
             </div>
+            {nav.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
