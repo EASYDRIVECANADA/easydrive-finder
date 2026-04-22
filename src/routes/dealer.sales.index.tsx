@@ -220,7 +220,7 @@ function SaleRequestCard({ order }: { order: Order }) {
           <div className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
             <div>
               <span className="text-muted-foreground">Buyer:</span>{" "}
-              <span className="font-medium">{order.customer.fullName}</span>
+              <span className="font-medium">{[order.customer.firstName, order.customer.lastName].filter(Boolean).join(" ")}</span>
             </div>
             <div className="text-muted-foreground">{order.customer.email}</div>
             <div>

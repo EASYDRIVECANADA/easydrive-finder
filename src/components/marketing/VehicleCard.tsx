@@ -1,21 +1,25 @@
 import { Link } from "@tanstack/react-router";
-import type { Vehicle } from "@/data/vehicles";
+import { LISTING_TYPE_STYLES, type Vehicle } from "@/data/vehicles";
 import { Gauge, Fuel, Settings2 } from "lucide-react";
 
 export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
+  const lt = LISTING_TYPE_STYLES[vehicle.listingType];
   return (
     <Link
       to="/inventory/$vehicleId"
       params={{ vehicleId: vehicle.id }}
       className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:shadow-lg"
     >
-      <div className="aspect-[16/10] overflow-hidden bg-muted">
+      <div className="relative aspect-[16/10] overflow-hidden bg-muted">
         <img
           src={vehicle.image}
           alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
+        <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow ${lt.chip}`}>
+          {lt.label}
+        </span>
       </div>
       <div className="p-5">
         <div className="flex items-start justify-between gap-2">
@@ -45,6 +49,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
             <Fuel className="h-3.5 w-3.5" /> {vehicle.fuel}
           </span>
         </div>
+        <div className="mt-3 text-xs text-muted-foreground">Sold by {vehicle.sellerName}</div>
       </div>
     </Link>
   );

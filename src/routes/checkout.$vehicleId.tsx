@@ -12,15 +12,19 @@ import { FileUpload } from "@/components/checkout/FileUpload";
 import { SignaturePad } from "@/components/checkout/SignaturePad";
 import { BillOfSaleContent } from "@/lib/bill-of-sale";
 import { DealerGuaranteeContent } from "@/lib/dealer-guarantee";
-import { getVehicleById } from "@/data/vehicles";
+import { getVehicleById, LISTING_TYPE_STYLES } from "@/data/vehicles";
 import {
+  ADDONS,
   computePricing,
   generateOrderId,
   saveOrder,
   activeOrderForVehicle,
+  type AddOn,
+  type AddOnId,
   type CustomerInfo,
   type FileRef,
   type Order,
+  type PricingBreakdown,
   type SignatureRecord,
   DEPOSIT,
 } from "@/lib/orders";
@@ -30,11 +34,16 @@ import {
   CheckCircle2,
   Copy,
   CreditCard,
+  Download,
   FileSignature,
+  FileText,
   IdCard,
   Mail,
+  Package,
+  Printer,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   User,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -60,17 +69,21 @@ export const Route = createFileRoute("/checkout/$vehicleId")({
 });
 
 const STEPS = [
-  { key: "customer", label: "Your details", icon: User },
-  { key: "licence", label: "Driver's licence", icon: IdCard },
-  { key: "deposit", label: "Deposit terms", icon: ShieldAlert },
-  { key: "etransfer", label: "E-transfer", icon: Mail },
-  { key: "bos", label: "Bill of Sale", icon: FileSignature },
-  { key: "guarantee", label: "Dealer Guarantee", icon: ShieldCheck },
-  { key: "confirm", label: "Confirmation", icon: CheckCircle2 },
+  { key: "customer",  label: "Your details",      icon: User },
+  { key: "licence",   label: "Driver's licence",  icon: IdCard },
+  { key: "addons",    label: "Add-ons",           icon: Sparkles },
+  { key: "carfax",    label: "CARFAX review",     icon: FileText },
+  { key: "bos",       label: "Bill of Sale",      icon: FileSignature },
+  { key: "guarantee", label: "Dealer Guarantee",  icon: ShieldCheck },
+  { key: "deposit",   label: "Deposit terms",     icon: ShieldAlert },
+  { key: "etransfer", label: "Send e-transfer",   icon: Mail },
+  { key: "confirm",   label: "Confirmation",      icon: CheckCircle2 },
 ] as const;
 
 const customerSchema = z.object({
-  fullName: z.string().trim().min(2, "Full name required").max(100),
+  firstName: z.string().trim().min(1, "First name required").max(60),
+  middleName: z.string().trim().max(60).optional().or(z.literal("")),
+  lastName: z.string().trim().min(1, "Last name required").max(60),
   email: z.string().trim().email("Valid email required").max(255),
   phone: z.string().trim().min(10, "Phone required").max(20),
   addressLine1: z.string().trim().min(3, "Address required").max(200),
@@ -83,16 +96,16 @@ const customerSchema = z.object({
 function CheckoutPage() {
   const vehicle = Route.useLoaderData();
   const navigate = useNavigate();
-  const pricing = useMemo(() => computePricing(vehicle.salePrice), [vehicle.salePrice]);
 
-  // Block if vehicle already has active order
   const existing = typeof window !== "undefined" ? activeOrderForVehicle(vehicle.id) : undefined;
 
   const [step, setStep] = useState(0);
   const [orderId] = useState(() => generateOrderId());
 
   const [customer, setCustomer] = useState<CustomerInfo>({
-    fullName: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
     email: "",
     phone: "",
     addressLine1: "",
@@ -106,10 +119,10 @@ function CheckoutPage() {
   const [licenceFront, setLicenceFront] = useState<FileRef | null>(null);
   const [licenceBack, setLicenceBack] = useState<FileRef | null>(null);
 
-  const [agreeDeposit, setAgreeDeposit] = useState(false);
-  const [agreeDiscretion, setAgreeDiscretion] = useState(false);
+  const [selectedAddOns, setSelectedAddOns] = useState<AddOnId[]>([]);
 
-  const [etransferSent, setEtransferSent] = useState(false);
+  const [carfaxInitial, setCarfaxInitial] = useState<string | null>(null);
+  const [carfaxAck, setCarfaxAck] = useState(false);
 
   const [bosTyped, setBosTyped] = useState("");
   const [bosDrawn, setBosDrawn] = useState<string | null>(null);
@@ -119,23 +132,27 @@ function CheckoutPage() {
   const [dgDrawn, setDgDrawn] = useState<string | null>(null);
   const [dgAgree, setDgAgree] = useState(false);
 
-  // -- step gates --
+  const [agreeDeposit, setAgreeDeposit] = useState(false);
+  const [agreeDiscretion, setAgreeDiscretion] = useState(false);
+
+  const [etransferSent, setEtransferSent] = useState(false);
+
+  const pricing = useMemo(
+    () => computePricing(vehicle.salePrice, vehicle.listingType, selectedAddOns),
+    [vehicle.salePrice, vehicle.listingType, selectedAddOns],
+  );
+
   const canNext = (() => {
     switch (STEPS[step].key) {
-      case "customer":
-        return customerSchema.safeParse(customer).success;
-      case "licence":
-        return !!licenceFront && !!licenceBack;
-      case "deposit":
-        return agreeDeposit && agreeDiscretion;
-      case "etransfer":
-        return etransferSent;
-      case "bos":
-        return bosTyped.trim().length > 1 && !!bosDrawn && bosAgree;
-      case "guarantee":
-        return dgTyped.trim().length > 1 && !!dgDrawn && dgAgree;
-      default:
-        return true;
+      case "customer":  return customerSchema.safeParse(customer).success;
+      case "licence":   return !!licenceFront && !!licenceBack;
+      case "addons":    return true;
+      case "carfax":    return !!carfaxInitial && carfaxAck;
+      case "bos":       return bosTyped.trim().length > 1 && !!bosDrawn && bosAgree;
+      case "guarantee": return dgTyped.trim().length > 1 && !!dgDrawn && dgAgree;
+      case "deposit":   return agreeDeposit && agreeDiscretion;
+      case "etransfer": return etransferSent;
+      default:          return true;
     }
   })();
 
@@ -144,15 +161,13 @@ function CheckoutPage() {
       const r = customerSchema.safeParse(customer);
       if (!r.success) {
         const errs: Record<string, string> = {};
-        for (const issue of r.error.issues) {
-          errs[issue.path[0] as string] = issue.message;
-        }
+        for (const issue of r.error.issues) errs[issue.path[0] as string] = issue.message;
         setCustomerErrors(errs);
         return;
       }
       setCustomerErrors({});
     }
-    if (STEPS[step].key === "guarantee") {
+    if (STEPS[step].key === "etransfer") {
       finalize();
       return;
     }
@@ -162,16 +177,8 @@ function CheckoutPage() {
 
   const finalize = () => {
     const now = new Date().toISOString();
-    const sigBoS: SignatureRecord = {
-      typedName: bosTyped.trim(),
-      drawnDataUrl: bosDrawn!,
-      signedAt: now,
-    };
-    const sigDG: SignatureRecord = {
-      typedName: dgTyped.trim(),
-      drawnDataUrl: dgDrawn!,
-      signedAt: now,
-    };
+    const sigBoS: SignatureRecord = { typedName: bosTyped.trim(), drawnDataUrl: bosDrawn!, signedAt: now };
+    const sigDG:  SignatureRecord = { typedName: dgTyped.trim(),  drawnDataUrl: dgDrawn!,  signedAt: now };
     const order: Order = {
       id: orderId,
       vehicleId: vehicle.id,
@@ -185,10 +192,14 @@ function CheckoutPage() {
         vin: vehicle.vin,
         salePrice: vehicle.salePrice,
         image: vehicle.image,
+        listingType: vehicle.listingType,
+        sellerName: vehicle.sellerName,
       },
       customer,
       pricing,
+      selectedAddOnIds: selectedAddOns,
       documents: { licenceFront, licenceBack, insurance: null },
+      carfax: { acknowledgedAt: now, initialDataUrl: carfaxInitial },
       signatures: {
         billOfSaleCustomer: sigBoS,
         billOfSaleDealer: null,
@@ -205,14 +216,17 @@ function CheckoutPage() {
       events: [
         { at: now, type: "order_created", actor: "customer" },
         { at: now, type: "licence_uploaded", actor: "customer" },
-        { at: now, type: "deposit_marked_sent", actor: "customer" },
+        { at: now, type: "addons_selected", actor: "customer", note: selectedAddOns.join(",") || "none" },
+        { at: now, type: "carfax_acknowledged", actor: "customer" },
         { at: now, type: "bill_of_sale_signed_customer", actor: "customer" },
         { at: now, type: "dealer_guarantee_signed_customer", actor: "customer" },
+        { at: now, type: "deposit_terms_acknowledged", actor: "customer" },
+        { at: now, type: "deposit_marked_sent", actor: "customer" },
       ],
       createdAt: now,
     };
     saveOrder(order);
-    toast.success("Sale request submitted! Check your email for next steps.");
+    toast.success("Sale request submitted — your digital Bill of Sale is ready.");
     setStep(STEPS.length - 1);
   };
 
@@ -224,8 +238,7 @@ function CheckoutPage() {
           <ShieldAlert className="mx-auto h-12 w-12 text-warning" />
           <h1 className="mt-4 text-2xl font-bold">This vehicle is already under contract</h1>
           <p className="mt-2 text-muted-foreground">
-            Order {existing.id} is currently active. The vehicle is no longer available for
-            checkout.
+            Order {existing.id} is currently active. The vehicle is no longer available for checkout.
           </p>
           <div className="mt-6 flex justify-center gap-2">
             <Button asChild variant="outline" className="rounded-full">
@@ -240,6 +253,40 @@ function CheckoutPage() {
       </div>
     );
   }
+
+  const orderSnapshotForPreview: Order = {
+    id: orderId,
+    createdAt: new Date().toISOString(),
+    customer,
+    vehicleSnapshot: {
+      id: vehicle.id,
+      year: vehicle.year,
+      make: vehicle.make,
+      model: vehicle.model,
+      trim: vehicle.trim,
+      stockNumber: vehicle.stockNumber,
+      vin: vehicle.vin,
+      salePrice: vehicle.salePrice,
+      image: vehicle.image,
+      listingType: vehicle.listingType,
+      sellerName: vehicle.sellerName,
+    },
+    pricing,
+    selectedAddOnIds: selectedAddOns,
+    vehicleId: vehicle.id,
+    documents: { licenceFront: null, licenceBack: null, insurance: null },
+    carfax: { acknowledgedAt: null, initialDataUrl: null },
+    signatures: { billOfSaleCustomer: null, billOfSaleDealer: null, dealerGuaranteeCustomer: null },
+    status: "deposit_pending",
+    depositSentByCustomerAt: null,
+    depositConfirmedAt: null,
+    dealerCounterSignedAt: null,
+    readyForDeliveryAt: null,
+    pickedUpAt: null,
+    cancelledAt: null,
+    cancelReason: null,
+    events: [],
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -261,7 +308,6 @@ function CheckoutPage() {
               {STEPS[step].key === "customer" && (
                 <StepCustomer customer={customer} setCustomer={setCustomer} errors={customerErrors} />
               )}
-
               {STEPS[step].key === "licence" && (
                 <StepLicence
                   front={licenceFront}
@@ -270,50 +316,26 @@ function CheckoutPage() {
                   onBack={setLicenceBack}
                 />
               )}
-
-              {STEPS[step].key === "deposit" && (
-                <StepDeposit
-                  agreeDeposit={agreeDeposit}
-                  setAgreeDeposit={setAgreeDeposit}
-                  agreeDiscretion={agreeDiscretion}
-                  setAgreeDiscretion={setAgreeDiscretion}
+              {STEPS[step].key === "addons" && (
+                <StepAddOns
+                  selected={selectedAddOns}
+                  setSelected={setSelectedAddOns}
                 />
               )}
-
-              {STEPS[step].key === "etransfer" && (
-                <StepEtransfer
-                  orderId={orderId}
-                  customerEmail={customer.email}
-                  sent={etransferSent}
-                  setSent={setEtransferSent}
+              {STEPS[step].key === "carfax" && (
+                <StepCarfax
+                  vin={vehicle.vin}
+                  initial={carfaxInitial}
+                  setInitial={setCarfaxInitial}
+                  ack={carfaxAck}
+                  setAck={setCarfaxAck}
                 />
               )}
-
               {STEPS[step].key === "bos" && (
                 <StepSign
                   title="Sign your Bill of Sale"
                   contentTitle="Bill of Sale preview"
-                  content={
-                    <BillOfSaleContent
-                      order={{
-                        id: orderId,
-                        createdAt: new Date().toISOString(),
-                        customer,
-                        vehicleSnapshot: {
-                          id: vehicle.id,
-                          year: vehicle.year,
-                          make: vehicle.make,
-                          model: vehicle.model,
-                          trim: vehicle.trim,
-                          stockNumber: vehicle.stockNumber,
-                          vin: vehicle.vin,
-                          salePrice: vehicle.salePrice,
-                          image: vehicle.image,
-                        },
-                        pricing,
-                      } as Order}
-                    />
-                  }
+                  content={<BillOfSaleContent order={orderSnapshotForPreview} />}
                   agreeLabel="I have read the Bill of Sale and agree to the terms."
                   typed={bosTyped}
                   setTyped={setBosTyped}
@@ -323,7 +345,6 @@ function CheckoutPage() {
                   setAgree={setBosAgree}
                 />
               )}
-
               {STEPS[step].key === "guarantee" && (
                 <StepSign
                   title="Sign the 30-Day Dealer Guarantee"
@@ -338,7 +359,22 @@ function CheckoutPage() {
                   setAgree={setDgAgree}
                 />
               )}
-
+              {STEPS[step].key === "deposit" && (
+                <StepDeposit
+                  agreeDeposit={agreeDeposit}
+                  setAgreeDeposit={setAgreeDeposit}
+                  agreeDiscretion={agreeDiscretion}
+                  setAgreeDiscretion={setAgreeDiscretion}
+                />
+              )}
+              {STEPS[step].key === "etransfer" && (
+                <StepEtransfer
+                  orderId={orderId}
+                  customerEmail={customer.email}
+                  sent={etransferSent}
+                  setSent={setEtransferSent}
+                />
+              )}
               {STEPS[step].key === "confirm" && (
                 <StepConfirm orderId={orderId} customerEmail={customer.email} />
               )}
@@ -357,7 +393,7 @@ function CheckoutPage() {
                     disabled={!canNext}
                     className="rounded-full bg-brand text-brand-foreground hover:bg-brand/90"
                   >
-                    {STEPS[step].key === "guarantee" ? "Submit sale request" : "Continue"}
+                    {STEPS[step].key === "etransfer" ? "Submit sale request" : "Continue"}
                     <ArrowRight className="ml-1 h-4 w-4" />
                   </Button>
                 </div>
@@ -394,7 +430,7 @@ function Stepper({ current, onJump }: { current: number; onJump: (i: number) => 
         const done = i < current;
         const active = i === current;
         return (
-          <li key={s.key} className="flex-1 min-w-[110px]">
+          <li key={s.key} className="flex-1 min-w-[100px]">
             <button
               type="button"
               onClick={() => onJump(i)}
@@ -440,12 +476,21 @@ function StepCustomer({
     <div>
       <h2 className="text-2xl font-bold">Tell us about you</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        We need accurate buyer details for the Bill of Sale.
+        Enter your legal name exactly as it appears on your driver's licence — this is what prints
+        on your digital Bill of Sale.
       </p>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <Field label="Full legal name" error={errors.fullName}>
-          <Input value={customer.fullName} onChange={set("fullName")} placeholder="Jane Doe" />
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <Field label="First name" error={errors.firstName}>
+          <Input value={customer.firstName} onChange={set("firstName")} placeholder="Jane" />
         </Field>
+        <Field label="Middle name (optional)" error={errors.middleName}>
+          <Input value={customer.middleName} onChange={set("middleName")} placeholder="A." />
+        </Field>
+        <Field label="Last name" error={errors.lastName}>
+          <Input value={customer.lastName} onChange={set("lastName")} placeholder="Doe" />
+        </Field>
+      </div>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Field label="Date of birth" error={errors.dob}>
           <Input type="date" value={customer.dob} onChange={set("dob")} />
         </Field>
@@ -455,7 +500,7 @@ function StepCustomer({
         <Field label="Phone" error={errors.phone}>
           <Input type="tel" value={customer.phone} onChange={set("phone")} placeholder="(416) 555-0101" />
         </Field>
-        <Field label="Address" error={errors.addressLine1} className="sm:col-span-2">
+        <Field label="Address" error={errors.addressLine1}>
           <Input value={customer.addressLine1} onChange={set("addressLine1")} placeholder="123 Main St" />
         </Field>
         <Field label="City" error={errors.city}>
@@ -517,6 +562,149 @@ function StepLicence({
   );
 }
 
+function StepAddOns({
+  selected,
+  setSelected,
+}: {
+  selected: AddOnId[];
+  setSelected: (s: AddOnId[]) => void;
+}) {
+  const toggle = (a: AddOn) => {
+    // For grouped tiers (warranty/ppf/ceramic), selecting one deselects siblings.
+    if (a.group === "warranty" || a.group === "ppf" || a.group === "ceramic") {
+      const sameGroupIds = ADDONS.filter((x) => x.group === a.group).map((x) => x.id);
+      const others = selected.filter((id) => !sameGroupIds.includes(id));
+      const isOn = selected.includes(a.id);
+      setSelected(isOn ? others : [...others, a.id]);
+    } else {
+      setSelected(selected.includes(a.id) ? selected.filter((id) => id !== a.id) : [...selected, a.id]);
+    }
+  };
+
+  const groups: Array<{ key: AddOn["group"]; title: string; subtitle: string; provider?: string }> = [
+    { key: "delivery", title: "Home Delivery", subtitle: "Skip the trip — we bring the car to you." },
+    { key: "warranty", title: "Extended Warranty", subtitle: "Powered by BridgeWarranty — final terms set at signing.", provider: "BridgeWarranty" },
+    { key: "ppf", title: "Paint Protection Film (PPF)", subtitle: "Self-healing film that shields your paint from rocks and scratches." },
+    { key: "ceramic", title: "Ceramic Coating", subtitle: "Hydrophobic, gloss-enhancing protection." },
+  ];
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold">Customize your purchase</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Optional add-ons. You can pick at most one tier per category.
+      </p>
+
+      <div className="mt-6 space-y-6">
+        {groups.map((g) => {
+          const items = ADDONS.filter((a) => a.group === g.key);
+          return (
+            <section key={g.key}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold">{g.title}</h3>
+                  <p className="text-xs text-muted-foreground">{g.subtitle}</p>
+                </div>
+                {g.provider && (
+                  <Badge className="bg-brand/15 text-brand hover:bg-brand/15">{g.provider}</Badge>
+                )}
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((a) => {
+                  const on = selected.includes(a.id);
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => toggle(a)}
+                      className={cn(
+                        "rounded-2xl border p-4 text-left transition",
+                        on ? "border-brand bg-brand/5 ring-2 ring-brand/30" : "border-border bg-card hover:border-foreground/20",
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="font-semibold">{a.label}</div>
+                        <div className="text-sm font-bold tabular-nums">${a.price.toLocaleString()}</div>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{a.description}</p>
+                      <div className={cn("mt-3 inline-flex items-center gap-1 text-xs font-medium", on ? "text-brand" : "text-muted-foreground")}>
+                        {on ? <><CheckCircle2 className="h-3.5 w-3.5" /> Added</> : "Tap to add"}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StepCarfax({
+  vin,
+  initial,
+  setInitial,
+  ack,
+  setAck,
+}: {
+  vin: string;
+  initial: string | null;
+  setInitial: (s: string | null) => void;
+  ack: boolean;
+  setAck: (b: boolean) => void;
+}) {
+  const sampleReport = "https://www.carfax.ca/sample-report.pdf";
+  return (
+    <div>
+      <h2 className="text-2xl font-bold">Review the CARFAX report</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        We need you to confirm you've reviewed the vehicle's CARFAX before continuing.
+      </p>
+
+      <div className="mt-5 rounded-2xl border border-border bg-muted/30 p-6">
+        <div className="flex items-start gap-3">
+          <FileText className="h-6 w-6 text-destructive" />
+          <div className="flex-1">
+            <h3 className="font-semibold">CARFAX Canada Report</h3>
+            <p className="text-xs text-muted-foreground">VIN: {vin}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              No accident/damage records found · Last registered in Ontario · 5 service records
+              found · No open recalls.
+            </p>
+            <Button asChild variant="outline" className="mt-3 rounded-full">
+              <a href={sampleReport} target="_blank" rel="noreferrer">
+                Open full report
+              </a>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label className="text-xs font-medium">Initial here</Label>
+          <div className="mt-1.5">
+            <SignaturePad onChange={setInitial} height={120} />
+          </div>
+        </div>
+        <div className="flex items-start">
+          <CheckItem checked={ack} onChange={setAck}>
+            I have reviewed the CARFAX report for this vehicle and accept it as part of my decision
+            to purchase.
+          </CheckItem>
+        </div>
+      </div>
+      {initial && (
+        <div className="mt-3 text-xs text-success">
+          <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" /> Initial captured
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StepDeposit({
   agreeDeposit,
   setAgreeDeposit,
@@ -531,15 +719,17 @@ function StepDeposit({
   return (
     <div>
       <h2 className="text-2xl font-bold">Deposit terms</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Please review and acknowledge before continuing.</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Review and acknowledge before sending your e-transfer.
+      </p>
 
       <div className="mt-6 rounded-2xl border border-warning/30 bg-warning/5 p-5">
         <div className="text-3xl font-bold">${DEPOSIT.toLocaleString()}</div>
         <div className="text-sm font-semibold text-foreground">Non-refundable deposit</div>
         <p className="mt-2 text-sm text-muted-foreground">
-          To secure a hold on your vehicle, you will send a $1,000 e-transfer to{" "}
+          To secure a hold on your vehicle, you'll send a $1,000 e-transfer to{" "}
           <span className="font-semibold">info@easydrivecanada.com</span>. The deposit is{" "}
-          <strong>non-refundable</strong> except at EasyDrive Canada&apos;s discretion.
+          <strong>non-refundable</strong> except at EasyDrive Canada's discretion.
         </p>
       </div>
 
@@ -552,9 +742,8 @@ function StepDeposit({
           refund the deposit at its sole discretion.
         </CheckItem>
         <CheckItem checked disabled>
-          After delivery is approved, I have <strong>72 hours</strong> to pay the remaining
-          balance and upload proof of insurance, or this purchase is cancelled and the deposit
-          is forfeited.
+          After delivery is approved, I have <strong>72 hours</strong> to pay the remaining balance
+          and upload proof of insurance, or this purchase is cancelled and the deposit is forfeited.
         </CheckItem>
       </ul>
     </div>
@@ -604,7 +793,7 @@ function StepEtransfer({
     <div>
       <h2 className="text-2xl font-bold">Send your $1,000 e-transfer</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        From your online banking, send an Interac e-transfer using these details.
+        Final step. From your online banking, send an Interac e-transfer using these details.
       </p>
 
       <div className="mt-6 space-y-3">
@@ -615,8 +804,10 @@ function StepEtransfer({
       </div>
 
       <div className="mt-6 rounded-xl bg-muted/40 p-4 text-xs text-muted-foreground">
-        We&apos;ll send a confirmation to <span className="font-medium text-foreground">{customerEmail || "your email"}</span> when
-        we receive your deposit. Most e-transfers process in under 30 minutes.
+        We'll send a confirmation to{" "}
+        <span className="font-medium text-foreground">{customerEmail || "your email"}</span> when
+        we receive your deposit. Most e-transfers process in under 30 minutes. Click "I've sent the
+        e-transfer" once it's on its way, then "Submit sale request" to finalize.
       </div>
 
       <div className="mt-6">
@@ -635,7 +826,7 @@ function StepEtransfer({
             </>
           ) : (
             <>
-              <Mail className="mr-1 h-4 w-4" /> I&apos;ve sent the e-transfer
+              <Mail className="mr-1 h-4 w-4" /> I've sent the e-transfer
             </>
           )}
         </Button>
@@ -704,12 +895,7 @@ function StepSign({
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div>
           <Label className="text-xs font-medium">Type your full name</Label>
-          <Input
-            className="mt-1.5"
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            placeholder="Jane Doe"
-          />
+          <Input className="mt-1.5" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Jane Doe" />
         </div>
         <div>
           <Label className="text-xs font-medium">Sign here</Label>
@@ -720,9 +906,7 @@ function StepSign({
       </div>
 
       <div className="mt-4">
-        <CheckItem checked={agree} onChange={setAgree}>
-          {agreeLabel}
-        </CheckItem>
+        <CheckItem checked={agree} onChange={setAgree}>{agreeLabel}</CheckItem>
       </div>
 
       {drawn && (
@@ -761,24 +945,26 @@ function StepConfirm({ orderId, customerEmail }: { orderId: string; customerEmai
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
         <CheckCircle2 className="h-8 w-8 text-success" />
       </div>
-      <h2 className="mt-4 text-2xl font-bold">Sale request submitted!</h2>
+      <h2 className="mt-4 text-2xl font-bold">Your digital Bill of Sale is ready</h2>
       <p className="mt-2 text-sm text-muted-foreground">
         Order <span className="font-mono font-semibold text-foreground">{orderId}</span>
       </p>
       <p className="mt-1 text-sm text-muted-foreground">
-        We&apos;ve recorded your signed Bill of Sale and Dealer Guarantee. A confirmation email
-        will go to <span className="font-medium text-foreground">{customerEmail}</span>.
+        Print it, save it to your phone or computer, or keep it in this browser. A confirmation
+        email will go to <span className="font-medium text-foreground">{customerEmail}</span>.
       </p>
 
-      <div className="mx-auto mt-6 flex max-w-md flex-wrap justify-center gap-2">
+      <div className="mx-auto mt-6 flex max-w-xl flex-wrap justify-center gap-2">
         <Button
-          variant="outline"
-          className="rounded-full"
+          className="rounded-full bg-brand text-brand-foreground hover:bg-brand/90"
           onClick={() => handleDownload("bos")}
           disabled={downloading === "bos"}
         >
-          <FileSignature className="mr-1.5 h-4 w-4" />
-          {downloading === "bos" ? "Generating…" : "Download Bill of Sale"}
+          <Download className="mr-1.5 h-4 w-4" />
+          {downloading === "bos" ? "Generating…" : "Download Bill of Sale (PDF)"}
+        </Button>
+        <Button variant="outline" className="rounded-full" onClick={() => window.print()}>
+          <Printer className="mr-1.5 h-4 w-4" /> Print
         </Button>
         <Button
           variant="outline"
@@ -795,8 +981,7 @@ function StepConfirm({ orderId, customerEmail }: { orderId: string; customerEmai
         <h3 className="text-sm font-semibold">What happens next</h3>
         <ol className="mt-3 space-y-3">
           {[
-            "Send the $1,000 e-transfer if you haven't already.",
-            "EasyDrive confirms receipt of your deposit.",
+            "EasyDrive confirms receipt of your $1,000 e-transfer.",
             "EasyDrive counter-signs the Bill of Sale.",
             "We send our direct deposit info — pay the remaining balance.",
             "We mark your vehicle ready for delivery (you have 72 hours).",
@@ -822,10 +1007,11 @@ function SummarySidebar({
   step,
 }: {
   vehicle: ReturnType<typeof getVehicleById> & {};
-  pricing: ReturnType<typeof computePricing>;
+  pricing: PricingBreakdown;
   orderId: string;
   step: number;
 }) {
+  const lt = LISTING_TYPE_STYLES[vehicle.listingType];
   return (
     <aside className="lg:sticky lg:top-20 lg:self-start">
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
@@ -833,7 +1019,12 @@ function SummarySidebar({
           <img src={vehicle.image} alt="" className="h-full w-full object-cover" />
         </div>
         <div className="p-5">
-          <Badge className="bg-brand/15 text-brand hover:bg-brand/15">Order {orderId}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge className="bg-brand/15 text-brand hover:bg-brand/15">Order {orderId}</Badge>
+            <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", lt.chip)}>
+              {lt.label}
+            </span>
+          </div>
           <div className="mt-2 font-semibold">
             {vehicle.year} {vehicle.make} {vehicle.model}
           </div>
@@ -842,10 +1033,40 @@ function SummarySidebar({
           </div>
 
           <div className="mt-4 space-y-1.5 text-sm">
-            <Row k="Sale price" v={pricing.salePrice} />
-            <Row k="Doc fee" v={pricing.docFee} />
-            <Row k="Licensing" v={pricing.licensing} />
-            <Row k="HST (13%)" v={pricing.hst} />
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Sale price</span>
+              <span className="tabular-nums">${pricing.salePrice.toLocaleString()}</span>
+            </div>
+            {pricing.lineItems.map((li) => (
+              <div key={li.label} className="flex justify-between">
+                <span className="text-muted-foreground">{li.label}</span>
+                {li.waived && li.originalAmount ? (
+                  <span className="tabular-nums">
+                    <span className="mr-1 text-muted-foreground line-through">${li.originalAmount}</span>
+                    <span className="text-success">WAIVED</span>
+                  </span>
+                ) : (
+                  <span className="tabular-nums">${li.amount.toLocaleString()}</span>
+                )}
+              </div>
+            ))}
+            {pricing.addOns.length > 0 && (
+              <div className="mt-2 border-t border-border pt-2">
+                <div className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Package className="h-3 w-3" /> Add-ons
+                </div>
+                {pricing.addOns.map((a) => (
+                  <div key={a.id} className="flex justify-between">
+                    <span className="text-muted-foreground">{a.label}</span>
+                    <span className="tabular-nums">${a.amount.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">HST (13%)</span>
+              <span className="tabular-nums">${pricing.hst.toLocaleString()}</span>
+            </div>
             <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-base font-bold">
               <span>Total</span>
               <span className="tabular-nums">${pricing.total.toLocaleString()}</span>
@@ -867,14 +1088,5 @@ function SummarySidebar({
         </div>
       </div>
     </aside>
-  );
-}
-
-function Row({ k, v }: { k: string; v: number }) {
-  return (
-    <div className="flex justify-between">
-      <span className="text-muted-foreground">{k}</span>
-      <span className="tabular-nums">${v.toLocaleString()}</span>
-    </div>
   );
 }
