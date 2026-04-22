@@ -207,6 +207,9 @@ function CheckoutPage() {
       customer,
       pricing,
       selectedAddOnIds: selectedAddOns,
+      warranty: null,
+      warrantyDeclined: false,
+      tireRim: null,
       documents: { licenceFront, licenceBack, insurance: null },
       carfax: { acknowledgedAt: now, initialDataUrl: carfaxInitial },
       signatures: {
