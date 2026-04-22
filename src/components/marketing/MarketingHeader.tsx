@@ -3,11 +3,13 @@ import { Menu } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EdcLogo } from "./EdcLogo";
+import { AccountTypeSwitcher } from "./AccountTypeSwitcher";
 
 const nav = [
   { to: "/" as const, label: "Home" },
   { to: "/inventory" as const, label: "Shop Cars" },
   { to: "/financing" as const, label: "Financing" },
+  { to: "/sell" as const, label: "Sell Your Car" },
   { to: "/contact" as const, label: "Contact" },
 ];
 
@@ -32,6 +34,7 @@ export function MarketingHeader() {
           ))}
         </nav>
         <div className="hidden items-center gap-2 md:flex">
+          <AccountTypeSwitcher />
           <Button asChild variant="ghost" size="sm" className="rounded-full">
             <Link to="/login">Dealer Login</Link>
           </Button>
@@ -50,6 +53,9 @@ export function MarketingHeader() {
       {open && (
         <div className="border-t border-border/60 bg-background md:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
+            <div className="px-1 pb-2">
+              <AccountTypeSwitcher compact />
+            </div>
             {nav.map((n) => (
               <Link
                 key={n.to}

@@ -132,6 +132,53 @@ function HomePage() {
           </div>
         </section>
 
+        {/* Listing types explainer */}
+        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="text-xs font-bold uppercase tracking-widest text-brand">
+              Trust transparency
+            </span>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">
+              Every listing is labeled.
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              You always know who you're buying from — a verified Private Seller,
+              an EDC-vetted dealer, or a fleet operator.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                label: "EDC Premier",
+                chip: "bg-brand text-brand-foreground",
+                desc: "Top-tier dealers. Documentation & dealer admin fees waived at checkout.",
+              },
+              {
+                label: "Dealer Select",
+                chip: "bg-indigo-500 text-white",
+                desc: "EDC-vetted independent dealers across Ontario. Standard dealer fees apply.",
+              },
+              {
+                label: "Fleet Select",
+                chip: "bg-slate-600 text-white",
+                desc: "Off-lease, rental & corporate fleet vehicles with detailed service history.",
+              },
+              {
+                label: "Private Seller",
+                chip: "bg-amber-500 text-white",
+                desc: "One vehicle per seller. ID, ownership, insurance & CARFAX verified before listing.",
+              },
+            ].map((t) => (
+              <div key={t.label} className="rounded-2xl border border-border bg-card p-5">
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${t.chip}`}>
+                  {t.label}
+                </span>
+                <p className="mt-3 text-sm text-muted-foreground">{t.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Featured vehicles */}
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <div className="mb-10 flex items-end justify-between gap-4">
