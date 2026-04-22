@@ -1,73 +1,85 @@
 
 
-## EasyDrive Canada — Public inventory, branded logo, and self-checkout
+## How to view a car listing and complete checkout in your current app
 
-### Live site status
-- `easydrivecanada.com/inventory` currently shows **0 vehicles** — nothing to scrape. I'll wire the public inventory to the existing 12 mock vehicles in `src/data/vehicles.ts` so everything is clickable now. When you have real listings, swap the data source (CSV import, Cloud table, or scrape later).
+This is a walkthrough of what's already built — no code changes needed unless you want the gaps closed.
 
-### 1. Match the real logo
-Recreate the EDC mark as a clean SVG component (`src/components/marketing/EdcLogo.tsx` — already exists, will be redrawn):
-- Bold blue **"EDC"** monogram (color `#3b9eff`), rounded geometric letterforms matching the screenshot
-- Small **"EASY DRIVE CANADA"** wordmark beneath in spaced caps
-- Used in marketing header, footer, login screen, and the dark dealer sidebar (white variant)
+### 1. Browse the inventory
+- Go to **`/inventory`** (or click **Shop Cars** in the header).
+- You'll see all 12 mock vehicles with price, photo, km, and a "Premier / Dealer" badge.
+- Quick filters on the left (Seller Type, Special Listings, Cars Under) narrow the list. Sort dropdown top-right.
+- Click any card to open the listing.
 
-Color palette pulled from the live site: primary blue `#3b9eff`, dark navy `#0a1628`, white background.
+### 2. View a car listing (Vehicle Detail Page)
+Route: **`/inventory/{vehicleId}`** (you're on `/inventory/v-001` right now).
 
-### 2. Public marketing — match live site feel
-- Update `/` hero: dark showroom background image, "Buy Your Next Car Online — Simple, Transparent, Delivered" headline, "Browse Vehicles" + "Get Pre-Approved" CTAs, trust row (150+ Point Inspection, We Bring It to You, Secure Checkout)
-- `/inventory` grid → cards link to `/inventory/$vehicleId`
-- `/inventory/$vehicleId` — gallery, specs, price, **"Buy this vehicle"** CTA → starts checkout
+What's on the page:
+- Hero photo + title (Year Make Model), trim, stock #, Certified/AS-IS badge.
+- Price, sale price, "Place on Hold" / primary CTA.
+- Payment calculator (down payment slider, term slider → monthly payment).
+- Vehicle specs (make, model, year, km, transmission, engine, drivetrain, colors).
+- Description and feature list.
+- Back-to-inventory link.
 
-### 3. Self-checkout — `/checkout/$vehicleId`
-Stepper:
-```text
-[1 Customer info] → [2 Driver's licence] → [3 Deposit $1,000] →
-[4 E-transfer instructions] → [5 Sign Bill of Sale] →
-[6 Sign 30-Day Dealer Guarantee] → [7 Confirmation]
-```
-- **1** Name, email, phone, address, DOB (Zod validated)
-- **2** Upload licence front + back (JPG/PNG/PDF, max 10 MB) → private Cloud Storage bucket
-- **3** Acknowledge **non-refundable $1,000 deposit** + EDC's discretionary cancel/refund right (checkbox)
-- **4** On-screen instructions: e-transfer $1,000 to `info@easydrivecanada.com`, reference = order #; "I've sent it" marks deposit pending
-- **5** Bill of Sale rendered with customer + vehicle + HST/doc fee/licensing breakdown; typed name + canvas signature pad → generates signed PDF (pdf-lib server function)
-- **6** 30-Day Dealer Guarantee — your PDF clauses 1–11 reformatted with proper typography, numbered list, signature block; signed PDF generated
-- **7** Order summary, "what happens next" timeline, order number
+The primary CTA on the listing is what starts checkout.
 
-On submit: vehicle status flips to **Deal Pending**, sale request appears in DMS.
+### 3. Self-checkout flow
+Route: **`/checkout/{vehicleId}`** — a multi-step wizard:
 
-### 4. Customer order portal — `/orders/$orderId` (magic-link login)
-- Live status timeline: Deposit pending → Deposit confirmed → Awaiting full payment → Ready for delivery → Picked up
-- **Direct deposit info card** (bank/transit/account) revealed when status = "Awaiting full payment"
-- **72-hour countdown** when status = "Ready for delivery"
-- Upload **proof of insurance** (required before pickup)
-- Re-download signed Bill of Sale + Dealer Guarantee
-- Forfeiture warning banner under 24h remaining
+1. **Customer Info** — name, email, phone, address (Zod-validated).
+2. **ID Upload** — driver's licence front/back via `FileUpload`.
+3. **Review Documents** — Bill of Sale + 30-Day Dealer Guarantee shown inline (OMVIC $22 + $59 licensing + HST included in pricing).
+4. **E-Signature** — `SignaturePad` captures a signature applied to both documents.
+5. **Deposit** — $500 e-transfer instructions (copy-to-clipboard for email/amount).
+6. **Confirmation** — order ID, "Download Bill of Sale" and "Download Guarantee" buttons (real signed PDFs via `pdf-lib`), link to the customer portal.
 
-### 5. DMS additions — extend `/dealer/sales`
-- New **Sale Requests** tab: customer, vehicle, deposit status, uploaded licence preview, signed docs
-- Actions: **Confirm deposit received** • **Counter-sign Bill of Sale** (finalizes deal, emails customer) • **Mark ready for delivery** (starts 72h timer + email) • **Approve insurance** • **Mark picked up** • **Cancel & forfeit deposit**
-- Auto-cancel: on order load, if 72h elapsed past `ready_for_delivery_at` without `picked_up` OR insurance not approved → status = Cancelled, vehicle returns to In Stock, deposit forfeited
+Order is saved to `localStorage` via `src/lib/orders.ts`.
 
-### 6. Backend (Lovable Cloud)
-**Tables:** `orders`, `customers`, `order_documents` (licence/insurance/bos/guarantee), `order_events` (audit), `user_roles` (separate roles table per security best practice).
+### 4. Customer order portal
+Route: **`/orders/{orderId}`** — customer returns here to:
+- See order status (Deposit Pending → Deposit Received → Balance Due → Complete).
+- Re-download signed Bill of Sale and Dealer Guarantee.
+- See balance-due instructions (direct deposit) once dealer confirms the deposit.
 
-**Storage buckets** (private, signed URLs): `licences`, `insurance`, `signed-docs`.
+### 5. Dealer side (you)
+Route: **`/dealer/sales`** — every checkout creates a sale row here. You manually mark deposit received and balance received; the customer portal updates live.
 
-**RLS:** customers see only their orders; dealers (via `has_role` security definer) see all.
+---
 
-**Server functions:** create order + lock vehicle, confirm deposit, counter-sign, mark ready, approve insurance, cancel + release.
+### Gaps vs. the live EasyDrive Canada listing screenshots you uploaded
 
-**Emails (Resend connector):** deposit instructions, dealer counter-signed, ready-for-delivery + 72h warning, cancellation, pickup confirmation.
+Your screenshots show polish the current build doesn't have yet:
 
-### What I need before building
-1. **Enable Lovable Cloud?** (required for auth, DB, file uploads, storage) — yes/no
-2. **Email sending** — connect **Resend** for transactional emails? (recommended)
-3. **Direct deposit details** — paste bank name, transit, institution, account number now, or use placeholder text I can swap later?
-4. **Mock vehicles OK for now?** (live site has 0 inventory)
+| Live site has | Current build |
+|---|---|
+| Photo carousel with thumbnail strip + "1 / 19" counter | Single hero image only |
+| "Deal Pending" status pill next to price | Not shown on listing |
+| Side action stack: Place on Hold, **View CARFAX Report**, **View Important Disclosure**, **Ask a Question**, **Call Us** | Only Place on Hold / primary CTA |
+| Trust row: CARFAX Available, Safety Inspected, Financing Available | Missing |
+| Stat tiles (km, year) above specs | Missing |
+| CARFAX PDF modal viewer | Missing |
+| "Important Disclosure" modal (EDC Premier, OMVIC fees, CARFAX disclosure) | Missing |
+| Breadcrumbs (Home › Inventory › Vehicle) | Missing |
+
+### Proposed fixes (one batch)
+
+1. **Listing page polish** (`inventory.$vehicleId.tsx`)
+   - Add `images[]` to vehicle type (fall back to `[image]`); build a carousel with prev/next, thumbnail strip, and "n / total" counter.
+   - Add breadcrumbs row.
+   - Add "Deal Pending" pill when an active order exists for the vehicle (already detectable via `activeOrderForVehicle`).
+   - Add the side action stack: Place on Hold, View CARFAX Report, View Important Disclosure, Ask a Question, Call Us (613) 777-2395.
+   - Add the trust row (CARFAX / Safety Inspected / Financing Available).
+   - Add the two stat tiles (km, year) above the specs grid.
+
+2. **CARFAX modal** — Dialog with embedded `<iframe>` of a sample CARFAX PDF (bundled in `public/`), plus "Open in new tab" link. Per-vehicle `carfaxUrl` field.
+
+3. **Important Disclosure modal** — Static EDC Premier disclosure (matches your screenshot exactly: Vehicle Status, Safety & Reconditioning, Fees & Licensing $22 OMVIC + $59 licensing, CARFAX Disclosure) with "I Understand" button.
+
+4. **Ask a Question** — Simple dialog with a contact form that creates a lead in `dealer.leads` (localStorage).
+
+5. **Checkout entry** — Make the listing's primary CTA explicitly say **"Buy Online — $500 Deposit"** and deep-link to `/checkout/{vehicleId}`, so the path from listing → checkout is obvious.
 
 ### Out of scope
-- Real payment processing — deposit (e-transfer) and balance (direct deposit) are both manually confirmed by dealer
-- Automated ID/licence verification — manual dealer review
-- SMS notifications — email only
-- pg_cron for the 72h timer — using on-load check + dealer manual action (can upgrade later)
+- Real CARFAX API integration (modal will show a sample PDF placeholder until you supply per-vehicle reports).
+- Real photo galleries per vehicle (will reuse the single image until you upload more).
 
