@@ -129,6 +129,9 @@ function CheckoutPage() {
   const [licenceBack, setLicenceBack] = useState<FileRef | null>(null);
 
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnId[]>([]);
+  const [warrantySelection, setWarrantySelection] = useState<WarrantySelection | null>(null);
+  const [warrantyDeclined, setWarrantyDeclined] = useState(false);
+  const [warrantyTermsAck, setWarrantyTermsAck] = useState(false);
 
   const [carfaxInitial, setCarfaxInitial] = useState<string | null>(null);
   const [carfaxAck, setCarfaxAck] = useState(false);
