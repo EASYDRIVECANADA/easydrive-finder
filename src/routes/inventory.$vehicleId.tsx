@@ -183,7 +183,7 @@ function VehicleDetail() {
                   className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90"
                 >
                   <Link to="/checkout/$vehicleId" params={{ vehicleId: v.id }}>
-                    {dealPending ? "On Hold" : "Buy Online — $500 Deposit"}
+                    {dealPending ? "On Hold" : "Buy Online — $1,000 Deposit"}
                   </Link>
                 </Button>
 
