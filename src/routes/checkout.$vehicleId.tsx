@@ -735,6 +735,27 @@ function StepSign({
 }
 
 function StepConfirm({ orderId, customerEmail }: { orderId: string; customerEmail: string }) {
+  const [downloading, setDownloading] = useState<"bos" | "guarantee" | null>(null);
+  const handleDownload = async (kind: "bos" | "guarantee") => {
+    try {
+      setDownloading(kind);
+      const { getOrder } = await import("@/lib/orders");
+      const { downloadOrderPdf } = await import("@/lib/pdf-generator");
+      const o = getOrder(orderId);
+      if (!o) {
+        toast.error("Order not found");
+        return;
+      }
+      await downloadOrderPdf(kind, o);
+      toast.success("PDF downloaded");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   return (
     <div className="text-center">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
@@ -748,6 +769,27 @@ function StepConfirm({ orderId, customerEmail }: { orderId: string; customerEmai
         We&apos;ve recorded your signed Bill of Sale and Dealer Guarantee. A confirmation email
         will go to <span className="font-medium text-foreground">{customerEmail}</span>.
       </p>
+
+      <div className="mx-auto mt-6 flex max-w-md flex-wrap justify-center gap-2">
+        <Button
+          variant="outline"
+          className="rounded-full"
+          onClick={() => handleDownload("bos")}
+          disabled={downloading === "bos"}
+        >
+          <FileSignature className="mr-1.5 h-4 w-4" />
+          {downloading === "bos" ? "Generating…" : "Download Bill of Sale"}
+        </Button>
+        <Button
+          variant="outline"
+          className="rounded-full"
+          onClick={() => handleDownload("guarantee")}
+          disabled={downloading === "guarantee"}
+        >
+          <ShieldCheck className="mr-1.5 h-4 w-4" />
+          {downloading === "guarantee" ? "Generating…" : "Download Dealer Guarantee"}
+        </Button>
+      </div>
 
       <div className="mx-auto mt-8 max-w-md text-left">
         <h3 className="text-sm font-semibold">What happens next</h3>
