@@ -17,6 +17,7 @@ import { CarfaxDialog } from "@/components/listing/CarfaxDialog";
 import { AskQuestionDialog } from "@/components/listing/AskQuestionDialog";
 import { FinanceCalculator } from "@/components/marketing/FinanceCalculator";
 import { VEHICLE_FINANCE_FAQS } from "@/data/financing-faqs";
+import { checkAllPlanEligibility } from "@/lib/bridgewarranty";
 import {
   CheckCircle2,
   ChevronRight,
@@ -26,6 +27,7 @@ import {
   Phone,
   ShieldAlert,
   ShieldCheck,
+  Shield,
   Calendar,
   Gauge,
   Banknote,
@@ -258,6 +260,41 @@ function VehicleDetail() {
                 <TrustRow icon={<Banknote className="h-4 w-4 text-emerald-600" />}>Financing Available</TrustRow>
               </div>
             </div>
+
+            {/* BridgeWarranty coverage teaser */}
+            {(() => {
+              const eligible = checkAllPlanEligibility({
+                year: v.year,
+                make: v.make,
+                model: v.model,
+                mileage: v.mileage,
+              }).filter((e) => e.eligible);
+              return (
+                <div className="rounded-3xl border border-border bg-card p-5">
+                  <div className="flex items-start gap-3">
+                    <Shield className="mt-0.5 h-5 w-5 text-brand" />
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold">Extended warranty available</div>
+                      <div className="text-xs text-muted-foreground">
+                        {eligible.length > 0
+                          ? `${eligible.length} A-Protect plan${eligible.length === 1 ? "" : "s"} qualify for this vehicle.`
+                          : "View A-Protect plans and compare coverage."}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Button asChild variant="outline" size="sm" className="rounded-full">
+                      <Link to="/warranty">View plans</Link>
+                    </Button>
+                    <Button asChild size="sm" className="rounded-full bg-brand text-brand-foreground hover:bg-brand/90">
+                      <Link to="/checkout/$vehicleId" params={{ vehicleId: v.id }}>
+                        Add at checkout
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Financing calculator */}
             <FinanceCalculator salePrice={v.salePrice} />
