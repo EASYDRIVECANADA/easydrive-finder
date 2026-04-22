@@ -1,109 +1,90 @@
 
 
-## Plan: EDC marketplace overhaul + checkout reorder + add-ons (14 changes)
+## Plan: Real BridgeWarranty checkout integration (driven by your Bridge Warranty Planner project)
 
-### 1. Replace EDC logo
-Copy `user-uploads://Profile_Logo.jpg` → `src/assets/edc-logo.jpg`. Rewrite `src/components/marketing/EdcLogo.tsx` to render the uploaded image (drop the inline SVG monogram). Keep `variant`/`asLink` props; size with `h-10 w-auto`.
+### What I found in your other project
+**Project: "Bridge Warranty Planner"** (`8298ebe6-...`) is the source of truth. It contains:
+- **`src/data/warrantyPlans.ts`** — full A-Protect V25 brochure: Powertrain (Bronze/Silver/Gold/Platinum), Essential, Premium Special, Luxury, Diamond Plus, Driver, Pro, Top Up. Each plan has terms (3–84 mo), claim limits ($750–$20,000), deductibles, base prices, mileage bands, add-ons (Unlimited km, Zero Deductible, Seals & Gaskets, Car Rental), premium-vehicle fees, coverage categories, benefits.
+- **`src/data/tireRimPlans.ts`** — Essential / Extended / Superior tiers, by vehicle Class 1/2/3, 24–84 months.
+- **`src/data/coverageMatrix.ts`** — full coverage comparison matrix.
+- **`src/lib/eligibility.ts`** — real eligibility engine (vehicle age + km + make → which plans qualify, with reasons).
+- **Supabase backend** (`products`, `dealership_product_pricing` tables) with dealership retail-price overlay.
 
-### 2. Better finance calculator (`inventory.$vehicleId.tsx`)
-- **Down payment**: numeric input alongside slider (slider step 100, max = 80% of price). Quick-pick chips: $0 / $1k / $2k / $5k / 10% / 20%.
-- **Term**: replace slider with segmented buttons (24 / 36 / 48 / 60 / 72 / 84 mo) — click, not drag.
-- **APR**: small input + slider (default 7.99%, range 4.99–14.99).
-- **Frequency toggle**: monthly / bi-weekly.
+### Approach
+Treat Bridge Warranty Planner as the **brochure / catalog** and EDC's checkout as the **buyer**. Two integration modes, layered:
 
-### 3. Pull easydrivefinance.ca content into the app
-Rewrite `src/routes/financing.tsx`:
-- Hero "Get Pre-Qualified for Auto Financing" + three bullets (one secure application, no obligation, all credit profiles).
-- "What we believe / How we do it / What we do" three-column section.
-- "Who EasyDrive Finance is for" list (fair credit, rebuilding, self-employed, new to Canada, etc.).
-- Testimonials (Nathaniel, Jackson, Olivia, Grace).
-- Full FAQ accordion (~20 Qs from their site).
-- Keep existing application form.
+- **Phase 1 (this turn): Static import.** Copy the A-Protect plan data, eligibility engine, coverage matrix, and tire-rim plans from the other project into EDC. No backend dependency, works immediately.
+- **Phase 2 (optional, after you confirm): Live API.** Add a `bridgewarranty_planner_url` env var and call its Supabase `products` table directly (or a thin server function) so plan/price edits in Bridge Warranty Planner reflect live in EDC checkout. Requires enabling Lovable Cloud on EDC.
 
-On the vehicle listing page add a compact 5–6 question "Financing FAQ" accordion in the right rail.
+I recommend doing Phase 1 now and asking you about Phase 2 after you see it working.
 
-### 4. Split customer name (First / Middle / Last)
-- `CustomerInfo` in `src/lib/orders.ts`: `firstName`, `middleName?`, `lastName` instead of `fullName`.
-- Update zod schema and `StepCustomer` (Middle marked optional).
-- `bill-of-sale.tsx` and `pdf-generator.ts` render full name correctly.
+### Phase 1 changes
 
-### 5. Frame output as "Digital Bill of Sale"
-Update copy on confirmation step and `orders.$orderId.tsx`. Add prominent **Download PDF / Print / Save to device** buttons.
+#### 1. Copy data + logic from Bridge Warranty Planner
+New folder `src/lib/bridgewarranty/`:
+- `plans.ts` — full `warrantyPlans` array (A-Protect V25, all tiers).
+- `tire-rim.ts` — `tireRimTiers`, `vehicleClasses`, `coveredServices`.
+- `coverage-matrix.ts` — `PLAN_COLUMNS` + `coverageMatrix`.
+- `eligibility.ts` — `checkAllPlanEligibility(year, km, make, model)` returning eligible plans + reasons.
+- `pricing.ts` — `quote(plan, term, addOns, premiumVehicle)` → `{ basePrice, addOnTotal, premiumFee, total, monthly }`.
+- `terms.ts` — `GENERAL_TERMS`, `GENERAL_EXCLUSIONS`, `WAITING_PERIOD`, `COVERAGE_TERRITORY`.
 
-### 6. Term eligibility based on vehicle age
-In the calculator, compute `age = currentYear - v.year` and disable terms above the cap:
-- 0–6 yrs → up to 84 mo
-- 7–9 yrs → up to 60 mo
-- 10+ yrs → up to 48 mo
+#### 2. Replace the warranty tile in checkout with a real "Extended Warranty" step
+In `src/routes/checkout.$vehicleId.tsx`, the existing single Add-ons step splits into:
+- **Step: Extended Warranty (BridgeWarranty)** — new, dedicated step before the existing Add-ons step.
+- **Step: Other Add-ons** — keeps Delivery, PPF, Ceramic Coating only (warranty options removed from `ADDONS`).
 
-Render an info chip explaining the age-based bank cap, with a link to `/financing`.
+The new warranty step UI:
+1. **Eligibility banner** at top reading the vehicle's `year`, `mileage`, `make`. Calls `checkAllPlanEligibility`. Shows "✓ Eligible for 6 plans" with a "Why are some unavailable?" disclosure listing ineligible plans + reasons (e.g. "Diamond Plus — vehicle must be 7 years or newer").
+2. **Plan picker** — cards for each eligible plan, grouped (Powertrain has Bronze/Silver/Gold/Platinum sub-tabs, like the brochure). Each card: name, claim limit, included coverage chips, deductible, premium-vehicle warning if applicable, "View full coverage" → modal with `coverageDetails` and `benefits`.
+3. **Term selector** — segmented buttons sourced from the selected plan's `terms` (3 mo / 6 mo / 12 mo / 24 mo / 36 mo …). Price recalculates live.
+4. **Add-on toggles** (per plan): Unlimited km, Zero Deductible, Seals & Gaskets, Car Rental — each pulled from the plan's `rows` so n/a entries are auto-disabled.
+5. **Coverage comparison link** — opens the full A-Protect coverage matrix as a modal.
+6. **Quote summary** — base + add-ons + premium-vehicle fee (auto-applied for BMW/Mercedes/Audi/Tesla/etc. via `isPremiumVehicle`) + tax → total. Also shows monthly equivalent (total / months).
+7. **"Decline coverage"** option that records a `warrantyDeclined: true` on the order.
 
-### 7. Remove free-delivery claim from home
-- Trust badge "Free Delivery" → **"Safety Inspected / Every EDC Premier vehicle"**.
-- FAQ "Do you deliver?" → "Delivery is available for a fee."
-- "How it works" step 4 → "Pick up or arrange delivery."
+#### 3. Tire & Rim — second optional product in same step
+Below the warranty card, a collapsible "Add Tire & Rim Protection" using `tireRimTiers` (Class auto-detected from vehicle make via `vehicleClasses`). Same shape: tier picker + term selector + price.
 
-### 8. Safety inspection messaging for EDC Premier
-On listing detail: when `listingType === "EDC Premier"`, show a green "Safety Inspected by EDC" trust badge. Other listing types show "Inspection status: see seller." Update home FAQ accordingly.
+#### 4. Order model + documents
+In `src/lib/orders.ts`:
+- Replace the three hard-coded warranty entries in `ADDONS` with two new structured fields on the `Order`:
+  ```
+  warranty?: {
+    planSlug, planName, termMonths, termKm,
+    deductible, claimLimit, addOns: string[],
+    premiumVehicleFee, basePrice, total, contractNumber
+  }
+  tireRim?: { tier, termMonths, vehicleClass, total }
+  ```
+- `computePricing()` adds `warranty.total + tireRim.total` to the taxable subtotal alongside other add-ons.
 
-### 9–11. Marketplace listing types
-Extend `Vehicle` in `src/data/vehicles.ts` with `listingType: "Private Seller" | "Dealer Select" | "EDC Premier" | "Fleet Select"` and `sellerName`. Backfill all 12 mock vehicles. Add a colored badge to `VehicleCard` (Premier=blue, Dealer Select=indigo, Fleet Select=slate, Private Seller=amber). Add a Listing Type checkbox group to inventory sidebar filters. Show the type chip + seller name on the listing detail. In `dealer.marketplace.tsx`, replace the static "AutoTrader / Kijiji / Facebook" pills with the actual listing type and a "Pushed live" indicator + tabs.
+In `src/lib/bill-of-sale.tsx` and `src/lib/pdf-generator.ts`:
+- Render a dedicated **"Vehicle Service Contract — A-Protect via BridgeWarranty"** block listing plan name, term, km cap, deductible, claim limit, selected add-ons, contract # (auto-generated `BW-YYYYMMDD-XXXX`), and price.
+- Render a separate **"Tire & Rim Protection"** line if selected.
+- Add a checkbox at the bottom of the warranty step: *"I've reviewed the A-Protect terms, exclusions, and 30-day / 1,000 km waiting period"* — required to advance, and the acknowledged-at timestamp is stored on the order and printed on the contract.
 
-### 12. Private Seller verification gate
-In `dealer.inventory.tsx`, show a top-of-page banner when account type is "Private Seller" (mock state via a top-bar account-type switcher for demo).
+#### 5. Stepper + summary sidebar
+Update the 9-step flow to 10 steps:
+1. Details → 2. Licence → 3. **Warranty (new)** → 4. Add-ons → 5. CARFAX → 6. Bill of Sale → 7. Dealer Guarantee → 8. Deposit terms → 9. E-transfer → 10. Confirmation.
 
-New `PrivateSellerVerification` component with 4 upload tiles + match-check status (Vehicle Ownership, Driver's Licence, Proof of Insurance, CARFAX Report). Until all 4 are uploaded and matched, marketplace status reads **"Pending Verification — not live"**; once complete, **"Live on Marketplace"**. Other account types skip the gate.
+Sidebar shows selected plan + term + price under "Coverage" so the buyer always sees what they've added.
 
-### 13. EDC Premier checkout fees + add-ons
-Update `src/lib/orders.ts` pricing model and the checkout summary.
+#### 6. Public BridgeWarranty page on EDC marketing site
+New route `src/routes/warranty.tsx` that mirrors the brochure: plan comparison matrix, "Get a quote for your car" form (year/km/make), and CTA to "Add to your purchase at checkout". Linked from the marketing header and from each vehicle detail page.
 
-**Premier fee structure** (only when `listingType === "EDC Premier"`):
-- Documentation Fee — **$999 ~~waived~~** ($0 charged, line shown with strike-through)
-- Dealer Admin Fee — **$999 ~~waived~~** ($0 charged)
-- OMVIC Fee — **$22** (taxable)
-- New Plates / Licensing — **$59**
-- HST 13% on (sale price + OMVIC + taxable add-ons).
+#### 7. Quiet fix
+The hydration mismatch on `SummarySidebar` order ID (`ORD-...UE7V` vs `...8SFX`) — wrap that badge in `suppressHydrationWarning` and only generate the ID inside `useEffect`.
 
-Non-Premier listings keep current $599 doc fee + $120 licensing.
-
-**New "Add-Ons" checkout step** with toggleable cards:
-- **Home Delivery** — flat $299 within ON.
-- **Extended Warranty (BridgeWarranty)** — Powertrain / Comprehensive / Premium tiers. Note "Powered by BridgeWarranty — final terms set at signing." (UI placeholder; real API deferred.)
-- **Paint Protection Film (PPF)** — Partial Front / Full Front / Full Body.
-- **Ceramic Coating** — 1yr / 5yr / Lifetime.
-
-Selected add-ons roll into pricing, Bill of Sale, and PDF.
-
-### 14. Reorder checkout: e-transfer is the LAST signed step
-The current flow ends with deposit-then-sign. New flow puts the e-transfer at the end, after every document is reviewed and signed:
-
-```text
-1. Your details          (first / middle / last name, address, DOB)
-2. Driver's licence      (front + back upload)
-3. Add-ons               (delivery / warranty / PPF / ceramic)
-4. CARFAX review         (NEW — open the report, "Initial here" pad,
-                          checkbox "I have reviewed the CARFAX")
-5. Bill of Sale          (read full doc, type + draw signature, agree)
-6. 30-Day Dealer         (read full policy, type + draw signature, agree)
-   Guarantee
-7. Deposit terms         (acknowledge $1,000 non-refundable + dealer
-                          discretion clause)
-8. Send e-transfer       (shown only once 1–7 are complete; reveals
-                          recipient email, password, memo with order ID,
-                          "I have sent the e-transfer" confirmation)
-9. Confirmation          (digital Bill of Sale ready — print / save / PDF)
-```
-
-Implementation:
-- Reorder the `STEPS` array in `src/routes/checkout.$vehicleId.tsx`.
-- Add a new `StepCarfaxReview` component (renders the same `CarfaxDialog` content inline, plus a small `SignaturePad` for an initial and an agreement checkbox; gates on initial + checkbox).
-- Move `StepEtransfer` to the second-to-last position. Its "Submit sale request" button is what creates the order (instead of the current behavior where finalize fires after signing the Dealer Guarantee).
-- `finalize()` now runs from the e-transfer step. Add `carfaxInitial` (data URL) and `carfaxAcknowledgedAt` to the `Order` type and persist them.
-- Update the stepper labels and the summary sidebar's progress copy.
+### Phase 2 (separate turn, only if you want live sync)
+- Enable Lovable Cloud on EDC (this project currently has no backend).
+- Add a server function `getWarrantyPlans()` that reads from the same Supabase project as Bridge Warranty Planner using its URL + anon key (stored as secrets `BRIDGEWARRANTY_SUPABASE_URL`, `BRIDGEWARRANTY_SUPABASE_ANON_KEY`).
+- Switch `src/lib/bridgewarranty/plans.ts` to fetch live products via `productService.dbToDisplay`, falling back to the static import if the network call fails.
+- This way price/plan edits in your Bridge Warranty Planner admin UI immediately reflect on EDC checkout.
 
 ### Out of scope
-- Real document OCR / identity verification (UI-only state machine with manual upload checkboxes).
-- Real auth/account-type system — represented by a demo top-bar switcher.
-- Live BridgeWarranty quote API (placeholder pricing only).
-- Real per-vehicle CARFAX PDFs (sample placeholder remains until real reports are supplied).
+- Real contract issuance to A-Protect / BridgeWarranty (the contract # we generate is internal until your Bridge Warranty Planner has an issuance API).
+- Provider claim lookups, claim filing UI.
+- Dealership-specific retail-price overlay (Bridge Warranty Planner has it; bringing it over needs Phase 2).
+- Editing plans from inside EDC (those still live in Bridge Warranty Planner).
 
