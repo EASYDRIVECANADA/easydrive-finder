@@ -129,6 +129,9 @@ function CheckoutPage() {
   const [licenceBack, setLicenceBack] = useState<FileRef | null>(null);
 
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnId[]>([]);
+  const [warrantySelection, setWarrantySelection] = useState<WarrantySelection | null>(null);
+  const [warrantyDeclined, setWarrantyDeclined] = useState(false);
+  const [warrantyTermsAck, setWarrantyTermsAck] = useState(false);
 
   const [carfaxInitial, setCarfaxInitial] = useState<string | null>(null);
   const [carfaxAck, setCarfaxAck] = useState(false);
@@ -147,14 +150,16 @@ function CheckoutPage() {
   const [etransferSent, setEtransferSent] = useState(false);
 
   const pricing = useMemo(
-    () => computePricing(vehicle.salePrice, vehicle.listingType, selectedAddOns),
-    [vehicle.salePrice, vehicle.listingType, selectedAddOns],
+    () => computePricing(vehicle.salePrice, vehicle.listingType, selectedAddOns, warrantySelection, null),
+    [vehicle.salePrice, vehicle.listingType, selectedAddOns, warrantySelection],
   );
+
 
   const canNext = (() => {
     switch (STEPS[step].key) {
       case "customer":  return customerSchema.safeParse(customer).success;
       case "licence":   return !!licenceFront && !!licenceBack;
+      case "warranty":  return (warrantySelection !== null || warrantyDeclined) && (warrantyDeclined || warrantyTermsAck);
       case "addons":    return true;
       case "carfax":    return !!carfaxInitial && carfaxAck;
       case "bos":       return bosTyped.trim().length > 1 && !!bosDrawn && bosAgree;
@@ -207,8 +212,8 @@ function CheckoutPage() {
       customer,
       pricing,
       selectedAddOnIds: selectedAddOns,
-      warranty: null,
-      warrantyDeclined: false,
+      warranty: warrantySelection,
+      warrantyDeclined: warrantyDeclined,
       tireRim: null,
       documents: { licenceFront, licenceBack, insurance: null },
       carfax: { acknowledgedAt: now, initialDataUrl: carfaxInitial },
@@ -228,6 +233,7 @@ function CheckoutPage() {
       events: [
         { at: now, type: "order_created", actor: "customer" },
         { at: now, type: "licence_uploaded", actor: "customer" },
+        { at: now, type: warrantyDeclined ? "warranty_declined" : "warranty_selected", actor: "customer", note: warrantySelection ? `${warrantySelection.planName} · ${warrantySelection.termLabel} · $${warrantySelection.total}` : "declined" },
         { at: now, type: "addons_selected", actor: "customer", note: selectedAddOns.join(",") || "none" },
         { at: now, type: "carfax_acknowledged", actor: "customer" },
         { at: now, type: "bill_of_sale_signed_customer", actor: "customer" },
@@ -285,8 +291,8 @@ function CheckoutPage() {
     },
     pricing,
     selectedAddOnIds: selectedAddOns,
-    warranty: null,
-    warrantyDeclined: false,
+    warranty: warrantySelection,
+    warrantyDeclined: warrantyDeclined,
     tireRim: null,
     vehicleId: vehicle.id,
     documents: { licenceFront: null, licenceBack: null, insurance: null },
@@ -329,6 +335,22 @@ function CheckoutPage() {
                   back={licenceBack}
                   onFront={setLicenceFront}
                   onBack={setLicenceBack}
+                />
+              )}
+              {STEPS[step].key === "warranty" && (
+                <StepWarranty
+                  vehicle={{
+                    year: vehicle.year,
+                    make: vehicle.make,
+                    model: vehicle.model,
+                    mileage: vehicle.mileage,
+                  }}
+                  selection={warrantySelection}
+                  setSelection={setWarrantySelection}
+                  declined={warrantyDeclined}
+                  setDeclined={setWarrantyDeclined}
+                  termsAck={warrantyTermsAck}
+                  setTermsAck={setWarrantyTermsAck}
                 />
               )}
               {STEPS[step].key === "addons" && (

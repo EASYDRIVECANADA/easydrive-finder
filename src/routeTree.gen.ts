@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WarrantyRouteImport } from './routes/warranty'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InventoryRouteImport } from './routes/inventory'
@@ -33,6 +34,11 @@ import { Route as CheckoutVehicleIdRouteImport } from './routes/checkout.$vehicl
 import { Route as DealerSalesIndexRouteImport } from './routes/dealer.sales.index'
 import { Route as DealerSalesNewRouteImport } from './routes/dealer.sales.new'
 
+const WarrantyRoute = WarrantyRouteImport.update({
+  id: '/warranty',
+  path: '/warranty',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellRoute = SellRouteImport.update({
   id: '/sell',
   path: '/sell',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/inventory': typeof InventoryRouteWithChildren
   '/login': typeof LoginRoute
   '/sell': typeof SellRoute
+  '/warranty': typeof WarrantyRoute
   '/checkout/$vehicleId': typeof CheckoutVehicleIdRoute
   '/dealer/billing': typeof DealerBillingRoute
   '/dealer/customers': typeof DealerCustomersRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/financing': typeof FinancingRoute
   '/login': typeof LoginRoute
   '/sell': typeof SellRoute
+  '/warranty': typeof WarrantyRoute
   '/checkout/$vehicleId': typeof CheckoutVehicleIdRoute
   '/dealer/billing': typeof DealerBillingRoute
   '/dealer/customers': typeof DealerCustomersRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/inventory': typeof InventoryRouteWithChildren
   '/login': typeof LoginRoute
   '/sell': typeof SellRoute
+  '/warranty': typeof WarrantyRoute
   '/checkout/$vehicleId': typeof CheckoutVehicleIdRoute
   '/dealer/billing': typeof DealerBillingRoute
   '/dealer/customers': typeof DealerCustomersRoute
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/login'
     | '/sell'
+    | '/warranty'
     | '/checkout/$vehicleId'
     | '/dealer/billing'
     | '/dealer/customers'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/financing'
     | '/login'
     | '/sell'
+    | '/warranty'
     | '/checkout/$vehicleId'
     | '/dealer/billing'
     | '/dealer/customers'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/login'
     | '/sell'
+    | '/warranty'
     | '/checkout/$vehicleId'
     | '/dealer/billing'
     | '/dealer/customers'
@@ -307,12 +319,20 @@ export interface RootRouteChildren {
   InventoryRoute: typeof InventoryRouteWithChildren
   LoginRoute: typeof LoginRoute
   SellRoute: typeof SellRoute
+  WarrantyRoute: typeof WarrantyRoute
   CheckoutVehicleIdRoute: typeof CheckoutVehicleIdRoute
   OrdersOrderIdRoute: typeof OrdersOrderIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/warranty': {
+      id: '/warranty'
+      path: '/warranty'
+      fullPath: '/warranty'
+      preLoaderRoute: typeof WarrantyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sell': {
       id: '/sell'
       path: '/sell'
@@ -532,6 +552,7 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryRoute: InventoryRouteWithChildren,
   LoginRoute: LoginRoute,
   SellRoute: SellRoute,
+  WarrantyRoute: WarrantyRoute,
   CheckoutVehicleIdRoute: CheckoutVehicleIdRoute,
   OrdersOrderIdRoute: OrdersOrderIdRoute,
 }
