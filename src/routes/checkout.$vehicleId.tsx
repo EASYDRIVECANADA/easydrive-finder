@@ -26,8 +26,11 @@ import {
   type Order,
   type PricingBreakdown,
   type SignatureRecord,
+  type WarrantySelection,
+  type TireRimSelection,
   DEPOSIT,
 } from "@/lib/orders";
+import { StepWarranty } from "@/components/checkout/StepWarranty";
 import {
   ArrowLeft,
   ArrowRight,
@@ -43,6 +46,7 @@ import {
   Printer,
   ShieldAlert,
   ShieldCheck,
+  Shield,
   Sparkles,
   User,
 } from "lucide-react";
@@ -71,6 +75,7 @@ export const Route = createFileRoute("/checkout/$vehicleId")({
 const STEPS = [
   { key: "customer",  label: "Your details",      icon: User },
   { key: "licence",   label: "Driver's licence",  icon: IdCard },
+  { key: "warranty",  label: "Extended warranty", icon: Shield },
   { key: "addons",    label: "Add-ons",           icon: Sparkles },
   { key: "carfax",    label: "CARFAX review",     icon: FileText },
   { key: "bos",       label: "Bill of Sale",      icon: FileSignature },
