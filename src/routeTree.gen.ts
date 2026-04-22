@@ -16,6 +16,7 @@ import { Route as DealerRouteImport } from './routes/dealer'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DealerIndexRouteImport } from './routes/dealer.index'
+import { Route as OrdersOrderIdRouteImport } from './routes/orders.$orderId'
 import { Route as InventoryVehicleIdRouteImport } from './routes/inventory.$vehicleId'
 import { Route as DealerVendorsRouteImport } from './routes/dealer.vendors'
 import { Route as DealerReportsRouteImport } from './routes/dealer.reports'
@@ -26,6 +27,7 @@ import { Route as DealerEsignatureRouteImport } from './routes/dealer.esignature
 import { Route as DealerDirectoryRouteImport } from './routes/dealer.directory'
 import { Route as DealerCustomersRouteImport } from './routes/dealer.customers'
 import { Route as DealerBillingRouteImport } from './routes/dealer.billing'
+import { Route as CheckoutVehicleIdRouteImport } from './routes/checkout.$vehicleId'
 import { Route as DealerSalesIndexRouteImport } from './routes/dealer.sales.index'
 import { Route as DealerSalesNewRouteImport } from './routes/dealer.sales.new'
 
@@ -63,6 +65,11 @@ const DealerIndexRoute = DealerIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DealerRoute,
+} as any)
+const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
+  id: '/orders/$orderId',
+  path: '/orders/$orderId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryVehicleIdRoute = InventoryVehicleIdRouteImport.update({
   id: '/$vehicleId',
@@ -114,6 +121,11 @@ const DealerBillingRoute = DealerBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => DealerRoute,
 } as any)
+const CheckoutVehicleIdRoute = CheckoutVehicleIdRouteImport.update({
+  id: '/checkout/$vehicleId',
+  path: '/checkout/$vehicleId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DealerSalesIndexRoute = DealerSalesIndexRouteImport.update({
   id: '/sales/',
   path: '/sales/',
@@ -132,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/financing': typeof FinancingRoute
   '/inventory': typeof InventoryRouteWithChildren
   '/login': typeof LoginRoute
+  '/checkout/$vehicleId': typeof CheckoutVehicleIdRoute
   '/dealer/billing': typeof DealerBillingRoute
   '/dealer/customers': typeof DealerCustomersRoute
   '/dealer/directory': typeof DealerDirectoryRoute
@@ -142,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/dealer/reports': typeof DealerReportsRoute
   '/dealer/vendors': typeof DealerVendorsRoute
   '/inventory/$vehicleId': typeof InventoryVehicleIdRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/dealer/': typeof DealerIndexRoute
   '/dealer/sales/new': typeof DealerSalesNewRoute
   '/dealer/sales/': typeof DealerSalesIndexRoute
@@ -152,6 +166,7 @@ export interface FileRoutesByTo {
   '/financing': typeof FinancingRoute
   '/inventory': typeof InventoryRouteWithChildren
   '/login': typeof LoginRoute
+  '/checkout/$vehicleId': typeof CheckoutVehicleIdRoute
   '/dealer/billing': typeof DealerBillingRoute
   '/dealer/customers': typeof DealerCustomersRoute
   '/dealer/directory': typeof DealerDirectoryRoute
@@ -162,6 +177,7 @@ export interface FileRoutesByTo {
   '/dealer/reports': typeof DealerReportsRoute
   '/dealer/vendors': typeof DealerVendorsRoute
   '/inventory/$vehicleId': typeof InventoryVehicleIdRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/dealer': typeof DealerIndexRoute
   '/dealer/sales/new': typeof DealerSalesNewRoute
   '/dealer/sales': typeof DealerSalesIndexRoute
@@ -174,6 +190,7 @@ export interface FileRoutesById {
   '/financing': typeof FinancingRoute
   '/inventory': typeof InventoryRouteWithChildren
   '/login': typeof LoginRoute
+  '/checkout/$vehicleId': typeof CheckoutVehicleIdRoute
   '/dealer/billing': typeof DealerBillingRoute
   '/dealer/customers': typeof DealerCustomersRoute
   '/dealer/directory': typeof DealerDirectoryRoute
@@ -184,6 +201,7 @@ export interface FileRoutesById {
   '/dealer/reports': typeof DealerReportsRoute
   '/dealer/vendors': typeof DealerVendorsRoute
   '/inventory/$vehicleId': typeof InventoryVehicleIdRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/dealer/': typeof DealerIndexRoute
   '/dealer/sales/new': typeof DealerSalesNewRoute
   '/dealer/sales/': typeof DealerSalesIndexRoute
@@ -197,6 +215,7 @@ export interface FileRouteTypes {
     | '/financing'
     | '/inventory'
     | '/login'
+    | '/checkout/$vehicleId'
     | '/dealer/billing'
     | '/dealer/customers'
     | '/dealer/directory'
@@ -207,6 +226,7 @@ export interface FileRouteTypes {
     | '/dealer/reports'
     | '/dealer/vendors'
     | '/inventory/$vehicleId'
+    | '/orders/$orderId'
     | '/dealer/'
     | '/dealer/sales/new'
     | '/dealer/sales/'
@@ -217,6 +237,7 @@ export interface FileRouteTypes {
     | '/financing'
     | '/inventory'
     | '/login'
+    | '/checkout/$vehicleId'
     | '/dealer/billing'
     | '/dealer/customers'
     | '/dealer/directory'
@@ -227,6 +248,7 @@ export interface FileRouteTypes {
     | '/dealer/reports'
     | '/dealer/vendors'
     | '/inventory/$vehicleId'
+    | '/orders/$orderId'
     | '/dealer'
     | '/dealer/sales/new'
     | '/dealer/sales'
@@ -238,6 +260,7 @@ export interface FileRouteTypes {
     | '/financing'
     | '/inventory'
     | '/login'
+    | '/checkout/$vehicleId'
     | '/dealer/billing'
     | '/dealer/customers'
     | '/dealer/directory'
@@ -248,6 +271,7 @@ export interface FileRouteTypes {
     | '/dealer/reports'
     | '/dealer/vendors'
     | '/inventory/$vehicleId'
+    | '/orders/$orderId'
     | '/dealer/'
     | '/dealer/sales/new'
     | '/dealer/sales/'
@@ -260,6 +284,8 @@ export interface RootRouteChildren {
   FinancingRoute: typeof FinancingRoute
   InventoryRoute: typeof InventoryRouteWithChildren
   LoginRoute: typeof LoginRoute
+  CheckoutVehicleIdRoute: typeof CheckoutVehicleIdRoute
+  OrdersOrderIdRoute: typeof OrdersOrderIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -312,6 +338,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dealer/'
       preLoaderRoute: typeof DealerIndexRouteImport
       parentRoute: typeof DealerRoute
+    }
+    '/orders/$orderId': {
+      id: '/orders/$orderId'
+      path: '/orders/$orderId'
+      fullPath: '/orders/$orderId'
+      preLoaderRoute: typeof OrdersOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/inventory/$vehicleId': {
       id: '/inventory/$vehicleId'
@@ -383,6 +416,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DealerBillingRouteImport
       parentRoute: typeof DealerRoute
     }
+    '/checkout/$vehicleId': {
+      id: '/checkout/$vehicleId'
+      path: '/checkout/$vehicleId'
+      fullPath: '/checkout/$vehicleId'
+      preLoaderRoute: typeof CheckoutVehicleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dealer/sales/': {
       id: '/dealer/sales/'
       path: '/sales'
@@ -452,6 +492,8 @@ const rootRouteChildren: RootRouteChildren = {
   FinancingRoute: FinancingRoute,
   InventoryRoute: InventoryRouteWithChildren,
   LoginRoute: LoginRoute,
+  CheckoutVehicleIdRoute: CheckoutVehicleIdRoute,
+  OrdersOrderIdRoute: OrdersOrderIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
