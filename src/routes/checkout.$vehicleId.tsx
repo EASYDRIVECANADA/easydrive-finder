@@ -153,8 +153,7 @@ function CheckoutPage() {
     () => computePricing(vehicle.salePrice, vehicle.listingType, selectedAddOns, warrantySelection, null),
     [vehicle.salePrice, vehicle.listingType, selectedAddOns, warrantySelection],
   );
-    [vehicle.salePrice, vehicle.listingType, selectedAddOns],
-  );
+
 
   const canNext = (() => {
     switch (STEPS[step].key) {
