@@ -1,61 +1,101 @@
 // Frontend-only order store (localStorage). No backend.
-import type { Vehicle } from "@/data/vehicles";
+import type { ListingType, Vehicle } from "@/data/vehicles";
 
 export type OrderStatus =
-  | "deposit_pending"      // customer indicated they sent e-transfer
-  | "deposit_confirmed"    // dealer confirmed receipt
-  | "awaiting_full_payment"// dealer counter-signed BoS, balance owed
-  | "ready_for_delivery"   // dealer marked ready -> 72h timer
-  | "picked_up"            // customer picked up
-  | "cancelled";           // forfeited
+  | "deposit_pending"
+  | "deposit_confirmed"
+  | "awaiting_full_payment"
+  | "ready_for_delivery"
+  | "picked_up"
+  | "cancelled";
 
 export type CustomerInfo = {
-  fullName: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
   email: string;
   phone: string;
   addressLine1: string;
   city: string;
   province: string;
   postalCode: string;
-  dob: string; // ISO date
+  dob: string;
 };
+
+export function fullName(c: CustomerInfo): string {
+  return [c.firstName, c.middleName, c.lastName].filter(Boolean).join(" ");
+}
 
 export type FileRef = {
   name: string;
   size: number;
   type: string;
-  // We store a data URL preview only for images < 1MB; otherwise null.
   dataUrl: string | null;
   uploadedAt: string;
 };
 
 export type SignatureRecord = {
   typedName: string;
-  drawnDataUrl: string; // PNG data URL from canvas
+  drawnDataUrl: string;
   signedAt: string;
 };
 
+export type AddOnId =
+  | "delivery"
+  | "warranty_powertrain"
+  | "warranty_comprehensive"
+  | "warranty_premium"
+  | "ppf_partial"
+  | "ppf_full_front"
+  | "ppf_full_body"
+  | "ceramic_1yr"
+  | "ceramic_5yr"
+  | "ceramic_lifetime";
+
+export type AddOn = {
+  id: AddOnId;
+  group: "delivery" | "warranty" | "ppf" | "ceramic";
+  label: string;
+  description: string;
+  price: number;
+  taxable: boolean;
+};
+
+export const ADDONS: AddOn[] = [
+  { id: "delivery", group: "delivery", label: "Home Delivery (Ontario)", description: "Doorstep delivery anywhere in ON. Outside ON quoted separately.", price: 299, taxable: true },
+  { id: "warranty_powertrain",    group: "warranty", label: "BridgeWarranty — Powertrain",    description: "24 months / 40,000 km — engine, transmission, drivetrain.", price: 1295, taxable: true },
+  { id: "warranty_comprehensive", group: "warranty", label: "BridgeWarranty — Comprehensive", description: "36 months / 60,000 km — powertrain + electrical + AC.",      price: 2195, taxable: true },
+  { id: "warranty_premium",       group: "warranty", label: "BridgeWarranty — Premium",       description: "48 months / 80,000 km — bumper-to-bumper coverage.",        price: 2995, taxable: true },
+  { id: "ppf_partial",    group: "ppf", label: "PPF — Partial Front",  description: "Bumper, partial hood, partial fenders, mirror caps.", price: 899,  taxable: true },
+  { id: "ppf_full_front", group: "ppf", label: "PPF — Full Front",     description: "Full bumper, full hood, full fenders, mirrors.",      price: 1799, taxable: true },
+  { id: "ppf_full_body",  group: "ppf", label: "PPF — Full Body",      description: "Self-healing film over the entire painted body.",     price: 4995, taxable: true },
+  { id: "ceramic_1yr",      group: "ceramic", label: "Ceramic Coating — 1 year",   description: "Entry-level hydrophobic protection.",  price: 499,  taxable: true },
+  { id: "ceramic_5yr",      group: "ceramic", label: "Ceramic Coating — 5 year",   description: "Multi-layer professional grade coating.", price: 1299, taxable: true },
+  { id: "ceramic_lifetime", group: "ceramic", label: "Ceramic Coating — Lifetime", description: "Lifetime warranty graphene coating.",   price: 2495, taxable: true },
+];
+
+export function getAddOn(id: AddOnId): AddOn | undefined {
+  return ADDONS.find((a) => a.id === id);
+}
+
 export type Order = {
-  id: string;            // human-readable: ORD-YYYYMMDD-XXXX
+  id: string;
   vehicleId: string;
   vehicleSnapshot: Pick<
     Vehicle,
     "id" | "year" | "make" | "model" | "trim" | "stockNumber" | "vin" | "salePrice" | "image"
-  >;
+  > & { listingType: ListingType; sellerName: string };
   customer: CustomerInfo;
-  pricing: {
-    salePrice: number;
-    docFee: number;
-    licensing: number;
-    hst: number;
-    total: number;
-    deposit: number;
-    balanceDue: number;
-  };
+  pricing: PricingBreakdown;
+  selectedAddOnIds: AddOnId[];
   documents: {
     licenceFront: FileRef | null;
     licenceBack: FileRef | null;
     insurance: FileRef | null;
+  };
+  carfax: {
+    acknowledgedAt: string | null;
+    initialDataUrl: string | null;
   };
   signatures: {
     billOfSaleCustomer: SignatureRecord | null;
@@ -66,7 +106,7 @@ export type Order = {
   depositSentByCustomerAt: string | null;
   depositConfirmedAt: string | null;
   dealerCounterSignedAt: string | null;
-  readyForDeliveryAt: string | null; // start of 72h
+  readyForDeliveryAt: string | null;
   pickedUpAt: string | null;
   cancelledAt: string | null;
   cancelReason: string | null;
@@ -74,7 +114,7 @@ export type Order = {
   createdAt: string;
 };
 
-const STORAGE_KEY = "edc.orders.v1";
+const STORAGE_KEY = "edc.orders.v2";
 
 function read(): Order[] {
   if (typeof window === "undefined") return [];
@@ -92,18 +132,105 @@ function write(orders: Order[]) {
 }
 
 export const HST_RATE = 0.13;
-export const DOC_FEE = 599;
-export const LICENSING = 120;
 export const DEPOSIT = 1000;
 
-export function computePricing(salePrice: number) {
-  const taxableBase = salePrice;
+// Premier (EDC own inventory) fee structure
+export const PREMIER_DOC_FEE_LIST = 999;
+export const PREMIER_ADMIN_FEE_LIST = 999;
+export const PREMIER_OMVIC_FEE = 22;       // taxable
+export const PREMIER_LICENSING = 59;       // not taxable
+// Standard non-Premier (third-party) fees
+export const STANDARD_DOC_FEE = 599;
+export const STANDARD_LICENSING = 120;
+
+export type PricingLineItem = {
+  label: string;
+  amount: number;
+  taxable: boolean;
+  waived?: boolean;
+  originalAmount?: number;
+  note?: string;
+};
+
+export type PricingBreakdown = {
+  salePrice: number;
+  lineItems: PricingLineItem[];
+  addOns: Array<{ id: AddOnId; label: string; amount: number; taxable: boolean }>;
+  // Convenience numerics
+  docFee: number;
+  licensing: number;
+  hst: number;
+  total: number;
+  deposit: number;
+  balanceDue: number;
+};
+
+export function computePricing(
+  salePrice: number,
+  listingType: ListingType,
+  selectedAddOnIds: AddOnId[] = [],
+): PricingBreakdown {
+  const lineItems: PricingLineItem[] = [];
+  let docFee = 0;
+  let licensing = 0;
+
+  if (listingType === "EDC Premier") {
+    lineItems.push({
+      label: "Documentation Fee",
+      amount: 0,
+      taxable: false,
+      waived: true,
+      originalAmount: PREMIER_DOC_FEE_LIST,
+      note: "Waived for EDC Premier",
+    });
+    lineItems.push({
+      label: "Dealer Admin Fee",
+      amount: 0,
+      taxable: false,
+      waived: true,
+      originalAmount: PREMIER_ADMIN_FEE_LIST,
+      note: "Waived for EDC Premier",
+    });
+    lineItems.push({
+      label: "OMVIC Fee",
+      amount: PREMIER_OMVIC_FEE,
+      taxable: true,
+    });
+    lineItems.push({
+      label: "New Plates / Licensing",
+      amount: PREMIER_LICENSING,
+      taxable: false,
+    });
+    docFee = 0;
+    licensing = PREMIER_LICENSING;
+  } else {
+    lineItems.push({ label: "Documentation Fee", amount: STANDARD_DOC_FEE, taxable: true });
+    lineItems.push({ label: "Licensing", amount: STANDARD_LICENSING, taxable: false });
+    docFee = STANDARD_DOC_FEE;
+    licensing = STANDARD_LICENSING;
+  }
+
+  const addOns = selectedAddOnIds
+    .map((id) => getAddOn(id))
+    .filter((a): a is AddOn => Boolean(a))
+    .map((a) => ({ id: a.id, label: a.label, amount: a.price, taxable: a.taxable }));
+
+  const taxableBase =
+    salePrice +
+    lineItems.filter((l) => l.taxable).reduce((sum, l) => sum + l.amount, 0) +
+    addOns.filter((a) => a.taxable).reduce((sum, a) => sum + a.amount, 0);
   const hst = Math.round(taxableBase * HST_RATE);
-  const total = salePrice + hst + DOC_FEE + LICENSING;
+
+  const lineSum = lineItems.reduce((sum, l) => sum + l.amount, 0);
+  const addOnSum = addOns.reduce((sum, a) => sum + a.amount, 0);
+  const total = salePrice + lineSum + addOnSum + hst;
+
   return {
     salePrice,
-    docFee: DOC_FEE,
-    licensing: LICENSING,
+    lineItems,
+    addOns,
+    docFee,
+    licensing,
     hst,
     total,
     deposit: DEPOSIT,
@@ -154,7 +281,6 @@ export function addEvent(
   }));
 }
 
-// 72h delivery window helpers
 export const DELIVERY_WINDOW_MS = 72 * 60 * 60 * 1000;
 
 export function deliveryDeadline(o: Order): Date | null {
@@ -165,7 +291,6 @@ export function shouldAutoCancel(o: Order, now = new Date()): boolean {
   if (o.status !== "ready_for_delivery") return false;
   const dl = deliveryDeadline(o);
   if (!dl) return false;
-  // auto-cancel if past deadline AND (no insurance OR balance not paid)
   return now.getTime() > dl.getTime();
 }
 
@@ -181,18 +306,12 @@ export function maybeAutoCancel(id: string) {
         "72-hour delivery window expired without full payment and proof of insurance. Deposit forfeited.",
       events: [
         ...curr.events,
-        {
-          at: new Date().toISOString(),
-          type: "auto_cancelled",
-          actor: "system",
-          note: "72h window elapsed",
-        },
+        { at: new Date().toISOString(), type: "auto_cancelled", actor: "system", note: "72h window elapsed" },
       ],
     }));
   }
 }
 
-// Check vehicle availability — returns existing active order for a vehicle
 export function activeOrderForVehicle(vehicleId: string): Order | undefined {
   return read().find(
     (o) => o.vehicleId === vehicleId && o.status !== "cancelled" && o.status !== "picked_up",
