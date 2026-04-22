@@ -212,8 +212,8 @@ function CheckoutPage() {
       customer,
       pricing,
       selectedAddOnIds: selectedAddOns,
-      warranty: null,
-      warrantyDeclined: false,
+      warranty: warrantySelection,
+      warrantyDeclined: warrantyDeclined,
       tireRim: null,
       documents: { licenceFront, licenceBack, insurance: null },
       carfax: { acknowledgedAt: now, initialDataUrl: carfaxInitial },
@@ -233,6 +233,7 @@ function CheckoutPage() {
       events: [
         { at: now, type: "order_created", actor: "customer" },
         { at: now, type: "licence_uploaded", actor: "customer" },
+        { at: now, type: warrantyDeclined ? "warranty_declined" : "warranty_selected", actor: "customer", note: warrantySelection ? `${warrantySelection.planName} · ${warrantySelection.termLabel} · $${warrantySelection.total}` : "declined" },
         { at: now, type: "addons_selected", actor: "customer", note: selectedAddOns.join(",") || "none" },
         { at: now, type: "carfax_acknowledged", actor: "customer" },
         { at: now, type: "bill_of_sale_signed_customer", actor: "customer" },
