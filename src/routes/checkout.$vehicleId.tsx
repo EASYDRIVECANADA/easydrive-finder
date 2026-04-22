@@ -207,6 +207,9 @@ function CheckoutPage() {
       customer,
       pricing,
       selectedAddOnIds: selectedAddOns,
+      warranty: null,
+      warrantyDeclined: false,
+      tireRim: null,
       documents: { licenceFront, licenceBack, insurance: null },
       carfax: { acknowledgedAt: now, initialDataUrl: carfaxInitial },
       signatures: {
@@ -282,6 +285,9 @@ function CheckoutPage() {
     },
     pricing,
     selectedAddOnIds: selectedAddOns,
+    warranty: null,
+    warrantyDeclined: false,
+    tireRim: null,
     vehicleId: vehicle.id,
     documents: { licenceFront: null, licenceBack: null, insurance: null },
     carfax: { acknowledgedAt: null, initialDataUrl: null },
@@ -580,7 +586,7 @@ function StepAddOns({
 }) {
   const toggle = (a: AddOn) => {
     // For grouped tiers (warranty/ppf/ceramic), selecting one deselects siblings.
-    if (a.group === "warranty" || a.group === "ppf" || a.group === "ceramic") {
+    if (a.group === "ppf" || a.group === "ceramic") {
       const sameGroupIds = ADDONS.filter((x) => x.group === a.group).map((x) => x.id);
       const others = selected.filter((id) => !sameGroupIds.includes(id));
       const isOn = selected.includes(a.id);
@@ -592,7 +598,6 @@ function StepAddOns({
 
   const groups: Array<{ key: AddOn["group"]; title: string; subtitle: string; provider?: string }> = [
     { key: "delivery", title: "Home Delivery", subtitle: "Skip the trip — we bring the car to you." },
-    { key: "warranty", title: "Extended Warranty", subtitle: "Powered by BridgeWarranty — final terms set at signing.", provider: "BridgeWarranty" },
     { key: "ppf", title: "Paint Protection Film (PPF)", subtitle: "Self-healing film that shields your paint from rocks and scratches." },
     { key: "ceramic", title: "Ceramic Coating", subtitle: "Hydrophobic, gloss-enhancing protection." },
   ];
