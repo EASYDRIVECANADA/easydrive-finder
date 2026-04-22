@@ -1,6 +1,34 @@
 // Frontend-only order store (localStorage). No backend.
 import type { ListingType, Vehicle } from "@/data/vehicles";
 
+// ── BridgeWarranty selections persisted on the order ─────────────
+export type WarrantySelection = {
+  planSlug: string;
+  planName: string;
+  perClaimAmount: number;
+  deductible: number;
+  termMonths: number;
+  termKm: string;
+  termLabel: string;
+  basePrice: number;
+  addOns: string[];          // labels (e.g. "Unlimited km")
+  addOnTotal: number;
+  premiumVehicleFee: number;
+  total: number;
+  contractNumber: string;
+  termsAcknowledgedAt: string | null;
+};
+
+export type TireRimSelection = {
+  tierSlug: string;
+  tierName: string;
+  vehicleClass: 1 | 2 | 3;
+  termLabel: string;
+  termMonths: number;
+  total: number;
+  contractNumber: string;
+};
+
 export type OrderStatus =
   | "deposit_pending"
   | "deposit_confirmed"
@@ -61,11 +89,10 @@ export type AddOn = {
   taxable: boolean;
 };
 
+// Add-on catalog. Warranty is now its own structured selection (see WarrantySelection)
+// driven by the BridgeWarranty / A-Protect plan catalog, not a static tier here.
 export const ADDONS: AddOn[] = [
   { id: "delivery", group: "delivery", label: "Home Delivery (Ontario)", description: "Doorstep delivery anywhere in ON. Outside ON quoted separately.", price: 299, taxable: true },
-  { id: "warranty_powertrain",    group: "warranty", label: "BridgeWarranty — Powertrain",    description: "24 months / 40,000 km — engine, transmission, drivetrain.", price: 1295, taxable: true },
-  { id: "warranty_comprehensive", group: "warranty", label: "BridgeWarranty — Comprehensive", description: "36 months / 60,000 km — powertrain + electrical + AC.",      price: 2195, taxable: true },
-  { id: "warranty_premium",       group: "warranty", label: "BridgeWarranty — Premium",       description: "48 months / 80,000 km — bumper-to-bumper coverage.",        price: 2995, taxable: true },
   { id: "ppf_partial",    group: "ppf", label: "PPF — Partial Front",  description: "Bumper, partial hood, partial fenders, mirror caps.", price: 899,  taxable: true },
   { id: "ppf_full_front", group: "ppf", label: "PPF — Full Front",     description: "Full bumper, full hood, full fenders, mirrors.",      price: 1799, taxable: true },
   { id: "ppf_full_body",  group: "ppf", label: "PPF — Full Body",      description: "Self-healing film over the entire painted body.",     price: 4995, taxable: true },
