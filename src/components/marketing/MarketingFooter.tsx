@@ -18,6 +18,7 @@ export function MarketingFooter() {
           <ul className="space-y-2 text-sm text-primary-foreground/70">
             <li><Link to="/inventory" className="hover:text-primary-foreground">All Inventory</Link></li>
             <li><Link to="/financing" className="hover:text-primary-foreground">Financing</Link></li>
+            <li><Link to="/warranty" className="hover:text-primary-foreground">Extended Warranty</Link></li>
             <li><Link to="/contact" className="hover:text-primary-foreground">Contact Us</Link></li>
           </ul>
         </div>

@@ -9,6 +9,7 @@ const nav = [
   { to: "/" as const, label: "Home" },
   { to: "/inventory" as const, label: "Shop Cars" },
   { to: "/financing" as const, label: "Financing" },
+  { to: "/warranty" as const, label: "Warranty" },
   { to: "/sell" as const, label: "Sell Your Car" },
   { to: "/contact" as const, label: "Contact" },
 ];
