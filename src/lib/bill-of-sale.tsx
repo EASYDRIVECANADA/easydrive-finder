@@ -1,4 +1,4 @@
-import type { Order } from "@/lib/orders";
+import { fullName, type Order } from "@/lib/orders";
 
 export function BillOfSaleContent({ order }: { order: Order }) {
   const { customer, vehicleSnapshot: v, pricing, id, createdAt } = order;
@@ -31,7 +31,7 @@ export function BillOfSaleContent({ order }: { order: Order }) {
         Buyer
       </h3>
       <p className="!mt-0">
-        {customer.fullName}
+        {fullName(customer)}
         <br />
         {customer.addressLine1}, {customer.city}, {customer.province} {customer.postalCode}
         <br />
