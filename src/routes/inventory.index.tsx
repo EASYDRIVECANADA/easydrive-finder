@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { VehicleCard } from "@/components/marketing/VehicleCard";
-import { vehicles } from "@/data/vehicles";
+import { vehicles, LISTING_TYPE_STYLES, type ListingType } from "@/data/vehicles";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -24,11 +24,13 @@ export const Route = createFileRoute("/inventory/")({
 
 const allMakes = Array.from(new Set(vehicles.map((v) => v.make))).sort();
 const allBodies = Array.from(new Set(vehicles.map((v) => v.bodyType))).sort();
+const allListingTypes: ListingType[] = ["EDC Premier", "Dealer Select", "Fleet Select", "Private Seller"];
 
 function InventoryPage() {
   const [search, setSearch] = useState("");
   const [makes, setMakes] = useState<string[]>([]);
   const [bodies, setBodies] = useState<string[]>([]);
+  const [listingTypes, setListingTypes] = useState<ListingType[]>([]);
   const [maxPrice, setMaxPrice] = useState(70000);
   const [minYear, setMinYear] = useState(2018);
 
@@ -37,13 +39,14 @@ function InventoryPage() {
       if (search && !`${v.year} ${v.make} ${v.model} ${v.trim}`.toLowerCase().includes(search.toLowerCase())) return false;
       if (makes.length && !makes.includes(v.make)) return false;
       if (bodies.length && !bodies.includes(v.bodyType)) return false;
+      if (listingTypes.length && !listingTypes.includes(v.listingType)) return false;
       if (v.salePrice > maxPrice) return false;
       if (v.year < minYear) return false;
       return true;
     });
-  }, [search, makes, bodies, maxPrice, minYear]);
+  }, [search, makes, bodies, listingTypes, maxPrice, minYear]);
 
-  const toggle = (list: string[], setList: (v: string[]) => void, val: string) => {
+  const toggle = <T extends string>(list: T[], setList: (v: T[]) => void, val: T) => {
     setList(list.includes(val) ? list.filter((x) => x !== val) : [...list, val]);
   };
 
