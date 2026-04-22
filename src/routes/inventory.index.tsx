@@ -119,10 +119,28 @@ function InventoryPage() {
                 ))}
               </div>
             </div>
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Listing Type</Label>
+              <div className="mt-2 space-y-2">
+                {allListingTypes.map((lt) => {
+                  const style = LISTING_TYPE_STYLES[lt];
+                  return (
+                    <label key={lt} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={listingTypes.includes(lt)}
+                        onCheckedChange={() => toggle(listingTypes, setListingTypes, lt)}
+                      />
+                      <span className={`inline-block h-2 w-2 rounded-full ${style.dot}`} />
+                      {style.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
             <Button
               variant="outline"
               className="w-full rounded-full"
-              onClick={() => { setSearch(""); setMakes([]); setBodies([]); setMaxPrice(70000); setMinYear(2018); }}
+              onClick={() => { setSearch(""); setMakes([]); setBodies([]); setListingTypes([]); setMaxPrice(70000); setMinYear(2018); }}
             >
               Reset filters
             </Button>
