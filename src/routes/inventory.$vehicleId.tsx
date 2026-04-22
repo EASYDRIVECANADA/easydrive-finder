@@ -2,15 +2,21 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
-import { getVehicleById } from "@/data/vehicles";
+import { getVehicleById, LISTING_TYPE_STYLES } from "@/data/vehicles";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { PhotoCarousel } from "@/components/listing/PhotoCarousel";
 import { DisclosureDialog } from "@/components/listing/DisclosureDialog";
 import { CarfaxDialog } from "@/components/listing/CarfaxDialog";
 import { AskQuestionDialog } from "@/components/listing/AskQuestionDialog";
+import { FinanceCalculator } from "@/components/marketing/FinanceCalculator";
+import { VEHICLE_FINANCE_FAQS } from "@/data/financing-faqs";
 import {
   CheckCircle2,
   ChevronRight,
@@ -23,6 +29,7 @@ import {
   Calendar,
   Gauge,
   Banknote,
+  HelpCircle,
 } from "lucide-react";
 import { activeOrderForVehicle } from "@/lib/orders";
 
@@ -64,13 +71,8 @@ export const Route = createFileRoute("/inventory/$vehicleId")({
 
 function VehicleDetail() {
   const v = Route.useLoaderData();
-  const [down, setDown] = useState(2000);
-  const [term, setTerm] = useState(60);
   const [dealPending, setDealPending] = useState(false);
-  const rate = 7.99 / 100 / 12;
-  const principal = v.salePrice - down;
-  const monthly =
-    principal > 0 ? (principal * rate) / (1 - Math.pow(1 + rate, -term)) : 0;
+  const lt = LISTING_TYPE_STYLES[v.listingType as keyof typeof LISTING_TYPE_STYLES];
 
   useEffect(() => {
     setDealPending(Boolean(activeOrderForVehicle(v.id)));
@@ -78,6 +80,7 @@ function VehicleDetail() {
 
   const images = v.images?.length ? v.images : [v.image];
   const label = `${v.year} ${v.make} ${v.model}`;
+
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -147,7 +150,35 @@ function VehicleDetail() {
                 ))}
               </ul>
             </div>
+
+            {/* Financing FAQ */}
+            <div className="mt-10">
+              <div className="flex items-center gap-2">
+                <span className="h-5 w-1 rounded-full bg-brand" />
+                <h2 className="text-xl font-bold">Financing — frequently asked</h2>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Quick answers about how financing works on this vehicle. For the full list see our{" "}
+                <Link to="/financing" className="font-semibold text-brand hover:underline">financing page</Link>.
+              </p>
+              <Accordion type="single" collapsible className="mt-4 rounded-2xl border border-border bg-card">
+                {VEHICLE_FINANCE_FAQS.map((f, i) => (
+                  <AccordionItem key={f.q} value={`q-${i}`} className="border-b border-border last:border-b-0">
+                    <AccordionTrigger className="px-5 text-left text-sm font-semibold hover:no-underline">
+                      <span className="flex items-start gap-2">
+                        <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+                        {f.q}
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-5 pl-11 text-sm text-muted-foreground">
+                      {f.a}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
           </div>
+
 
           <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
             {/* Title + price */}
@@ -229,30 +260,21 @@ function VehicleDetail() {
             </div>
 
             {/* Financing calculator */}
-            <div className="rounded-3xl border border-border bg-card p-6">
-              <h3 className="text-lg font-semibold">Financing calculator</h3>
-              <p className="mt-1 text-xs text-muted-foreground">Estimated at 7.99% APR</p>
-              <div className="mt-4 space-y-5">
-                <div>
-                  <Label className="text-xs">Down payment: ${down.toLocaleString()}</Label>
-                  <Slider value={[down]} min={0} max={Math.floor(v.salePrice * 0.5)} step={500} onValueChange={(x) => setDown(x[0])} className="mt-2" />
-                </div>
-                <div>
-                  <Label className="text-xs">Term: {term} months</Label>
-                  <Slider value={[term]} min={24} max={84} step={12} onValueChange={(x) => setTerm(x[0])} className="mt-2" />
-                </div>
+            <FinanceCalculator salePrice={v.salePrice} />
+
+            {/* Listing type / seller card */}
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Listing type
+                </span>
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${lt.chip}`}>
+                  {lt.label}
+                </span>
               </div>
-              <div className="mt-5 rounded-2xl bg-brand/10 p-4 text-center">
-                <div className="text-xs text-muted-foreground">Estimated monthly</div>
-                <div className="text-3xl font-bold text-brand">
-                  ${Math.round(monthly).toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">/ month for {term} months</div>
-              </div>
-              <Button asChild variant="outline" className="mt-4 w-full rounded-full">
-                <Link to="/financing">Get pre-approved</Link>
-              </Button>
+              <div className="mt-2 text-sm">Sold by <span className="font-semibold">{v.sellerName}</span></div>
             </div>
+
           </aside>
         </div>
       </main>

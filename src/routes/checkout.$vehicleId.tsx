@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
@@ -100,7 +100,11 @@ function CheckoutPage() {
   const existing = typeof window !== "undefined" ? activeOrderForVehicle(vehicle.id) : undefined;
 
   const [step, setStep] = useState(0);
-  const [orderId] = useState(() => generateOrderId());
+  const [orderId, setOrderId] = useState<string>("");
+  // Generate orderId only on the client to avoid SSR hydration mismatch
+  useEffect(() => {
+    if (!orderId) setOrderId(generateOrderId());
+  }, [orderId]);
 
   const [customer, setCustomer] = useState<CustomerInfo>({
     firstName: "",
@@ -1020,7 +1024,7 @@ function SummarySidebar({
         </div>
         <div className="p-5">
           <div className="flex items-center gap-2">
-            <Badge className="bg-brand/15 text-brand hover:bg-brand/15">Order {orderId}</Badge>
+            <Badge className="bg-brand/15 text-brand hover:bg-brand/15">Order {orderId || "—"}</Badge>
             <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", lt.chip)}>
               {lt.label}
             </span>
