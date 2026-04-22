@@ -70,9 +70,6 @@ export type SignatureRecord = {
 
 export type AddOnId =
   | "delivery"
-  | "warranty_powertrain"
-  | "warranty_comprehensive"
-  | "warranty_premium"
   | "ppf_partial"
   | "ppf_full_front"
   | "ppf_full_body"
@@ -82,7 +79,7 @@ export type AddOnId =
 
 export type AddOn = {
   id: AddOnId;
-  group: "delivery" | "warranty" | "ppf" | "ceramic";
+  group: "delivery" | "ppf" | "ceramic";
   label: string;
   description: string;
   price: number;
