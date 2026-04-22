@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
@@ -102,14 +102,8 @@ function CheckoutPage() {
   const [step, setStep] = useState(0);
   const [orderId, setOrderId] = useState<string>("");
   // Generate orderId only on the client to avoid SSR hydration mismatch
-  if (typeof window !== "undefined" && !orderId) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    // Set synchronously during render — safe because guarded by empty check
-  }
-  // Use effect for stable client-only id
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useMemo(() => {
-    if (typeof window !== "undefined" && !orderId) setOrderId(generateOrderId());
+  useEffect(() => {
+    if (!orderId) setOrderId(generateOrderId());
   }, [orderId]);
 
   const [customer, setCustomer] = useState<CustomerInfo>({
