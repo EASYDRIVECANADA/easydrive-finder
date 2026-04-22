@@ -1,6 +1,34 @@
 // Frontend-only order store (localStorage). No backend.
 import type { ListingType, Vehicle } from "@/data/vehicles";
 
+// ── BridgeWarranty selections persisted on the order ─────────────
+export type WarrantySelection = {
+  planSlug: string;
+  planName: string;
+  perClaimAmount: number;
+  deductible: number;
+  termMonths: number;
+  termKm: string;
+  termLabel: string;
+  basePrice: number;
+  addOns: string[];          // labels (e.g. "Unlimited km")
+  addOnTotal: number;
+  premiumVehicleFee: number;
+  total: number;
+  contractNumber: string;
+  termsAcknowledgedAt: string | null;
+};
+
+export type TireRimSelection = {
+  tierSlug: string;
+  tierName: string;
+  vehicleClass: 1 | 2 | 3;
+  termLabel: string;
+  termMonths: number;
+  total: number;
+  contractNumber: string;
+};
+
 export type OrderStatus =
   | "deposit_pending"
   | "deposit_confirmed"
@@ -42,9 +70,6 @@ export type SignatureRecord = {
 
 export type AddOnId =
   | "delivery"
-  | "warranty_powertrain"
-  | "warranty_comprehensive"
-  | "warranty_premium"
   | "ppf_partial"
   | "ppf_full_front"
   | "ppf_full_body"
@@ -54,18 +79,17 @@ export type AddOnId =
 
 export type AddOn = {
   id: AddOnId;
-  group: "delivery" | "warranty" | "ppf" | "ceramic";
+  group: "delivery" | "ppf" | "ceramic";
   label: string;
   description: string;
   price: number;
   taxable: boolean;
 };
 
+// Add-on catalog. Warranty is now its own structured selection (see WarrantySelection)
+// driven by the BridgeWarranty / A-Protect plan catalog, not a static tier here.
 export const ADDONS: AddOn[] = [
   { id: "delivery", group: "delivery", label: "Home Delivery (Ontario)", description: "Doorstep delivery anywhere in ON. Outside ON quoted separately.", price: 299, taxable: true },
-  { id: "warranty_powertrain",    group: "warranty", label: "BridgeWarranty — Powertrain",    description: "24 months / 40,000 km — engine, transmission, drivetrain.", price: 1295, taxable: true },
-  { id: "warranty_comprehensive", group: "warranty", label: "BridgeWarranty — Comprehensive", description: "36 months / 60,000 km — powertrain + electrical + AC.",      price: 2195, taxable: true },
-  { id: "warranty_premium",       group: "warranty", label: "BridgeWarranty — Premium",       description: "48 months / 80,000 km — bumper-to-bumper coverage.",        price: 2995, taxable: true },
   { id: "ppf_partial",    group: "ppf", label: "PPF — Partial Front",  description: "Bumper, partial hood, partial fenders, mirror caps.", price: 899,  taxable: true },
   { id: "ppf_full_front", group: "ppf", label: "PPF — Full Front",     description: "Full bumper, full hood, full fenders, mirrors.",      price: 1799, taxable: true },
   { id: "ppf_full_body",  group: "ppf", label: "PPF — Full Body",      description: "Self-healing film over the entire painted body.",     price: 4995, taxable: true },
@@ -88,6 +112,9 @@ export type Order = {
   customer: CustomerInfo;
   pricing: PricingBreakdown;
   selectedAddOnIds: AddOnId[];
+  warranty: WarrantySelection | null;
+  warrantyDeclined: boolean;
+  tireRim: TireRimSelection | null;
   documents: {
     licenceFront: FileRef | null;
     licenceBack: FileRef | null;
@@ -156,6 +183,8 @@ export type PricingBreakdown = {
   salePrice: number;
   lineItems: PricingLineItem[];
   addOns: Array<{ id: AddOnId; label: string; amount: number; taxable: boolean }>;
+  warrantyLine: { label: string; amount: number; contractNumber: string } | null;
+  tireRimLine: { label: string; amount: number; contractNumber: string } | null;
   // Convenience numerics
   docFee: number;
   licensing: number;
@@ -169,6 +198,8 @@ export function computePricing(
   salePrice: number,
   listingType: ListingType,
   selectedAddOnIds: AddOnId[] = [],
+  warranty: WarrantySelection | null = null,
+  tireRim: TireRimSelection | null = null,
 ): PricingBreakdown {
   const lineItems: PricingLineItem[] = [];
   let docFee = 0;
@@ -215,20 +246,42 @@ export function computePricing(
     .filter((a): a is AddOn => Boolean(a))
     .map((a) => ({ id: a.id, label: a.label, amount: a.price, taxable: a.taxable }));
 
+  // BridgeWarranty + Tire & Rim — taxable line items added on top.
+  const warrantyLine = warranty
+    ? {
+        label: `Vehicle Service Contract — ${warranty.planName}`,
+        amount: warranty.total,
+        contractNumber: warranty.contractNumber,
+      }
+    : null;
+  const tireRimLine = tireRim
+    ? {
+        label: `Tire & Rim Protection — ${tireRim.tierName}`,
+        amount: tireRim.total,
+        contractNumber: tireRim.contractNumber,
+      }
+    : null;
+  const warrantyAmount = warrantyLine?.amount ?? 0;
+  const tireRimAmount = tireRimLine?.amount ?? 0;
+
   const taxableBase =
     salePrice +
     lineItems.filter((l) => l.taxable).reduce((sum, l) => sum + l.amount, 0) +
-    addOns.filter((a) => a.taxable).reduce((sum, a) => sum + a.amount, 0);
+    addOns.filter((a) => a.taxable).reduce((sum, a) => sum + a.amount, 0) +
+    warrantyAmount +
+    tireRimAmount;
   const hst = Math.round(taxableBase * HST_RATE);
 
   const lineSum = lineItems.reduce((sum, l) => sum + l.amount, 0);
   const addOnSum = addOns.reduce((sum, a) => sum + a.amount, 0);
-  const total = salePrice + lineSum + addOnSum + hst;
+  const total = salePrice + lineSum + addOnSum + warrantyAmount + tireRimAmount + hst;
 
   return {
     salePrice,
     lineItems,
     addOns,
+    warrantyLine,
+    tireRimLine,
     docFee,
     licensing,
     hst,
