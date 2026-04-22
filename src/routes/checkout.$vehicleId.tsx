@@ -150,7 +150,9 @@ function CheckoutPage() {
   const [etransferSent, setEtransferSent] = useState(false);
 
   const pricing = useMemo(
-    () => computePricing(vehicle.salePrice, vehicle.listingType, selectedAddOns),
+    () => computePricing(vehicle.salePrice, vehicle.listingType, selectedAddOns, warrantySelection, null),
+    [vehicle.salePrice, vehicle.listingType, selectedAddOns, warrantySelection],
+  );
     [vehicle.salePrice, vehicle.listingType, selectedAddOns],
   );
 
