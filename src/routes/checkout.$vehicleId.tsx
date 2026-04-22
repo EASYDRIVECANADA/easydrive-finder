@@ -353,6 +353,7 @@ function CheckoutPage() {
                   setTermsAck={setWarrantyTermsAck}
                 />
               )}
+              {STEPS[step].key === "addons" && (
                 <StepAddOns
                   selected={selectedAddOns}
                   setSelected={setSelectedAddOns}
