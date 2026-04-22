@@ -150,7 +150,35 @@ function VehicleDetail() {
                 ))}
               </ul>
             </div>
+
+            {/* Financing FAQ */}
+            <div className="mt-10">
+              <div className="flex items-center gap-2">
+                <span className="h-5 w-1 rounded-full bg-brand" />
+                <h2 className="text-xl font-bold">Financing — frequently asked</h2>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Quick answers about how financing works on this vehicle. For the full list see our{" "}
+                <Link to="/financing" className="font-semibold text-brand hover:underline">financing page</Link>.
+              </p>
+              <Accordion type="single" collapsible className="mt-4 rounded-2xl border border-border bg-card">
+                {VEHICLE_FINANCE_FAQS.map((f, i) => (
+                  <AccordionItem key={f.q} value={`q-${i}`} className="border-b border-border last:border-b-0">
+                    <AccordionTrigger className="px-5 text-left text-sm font-semibold hover:no-underline">
+                      <span className="flex items-start gap-2">
+                        <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+                        {f.q}
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-5 pl-11 text-sm text-muted-foreground">
+                      {f.a}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
           </div>
+
 
           <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
             {/* Title + price */}
