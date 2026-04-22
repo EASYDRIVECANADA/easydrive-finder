@@ -112,6 +112,9 @@ export type Order = {
   customer: CustomerInfo;
   pricing: PricingBreakdown;
   selectedAddOnIds: AddOnId[];
+  warranty: WarrantySelection | null;
+  warrantyDeclined: boolean;
+  tireRim: TireRimSelection | null;
   documents: {
     licenceFront: FileRef | null;
     licenceBack: FileRef | null;
@@ -180,6 +183,8 @@ export type PricingBreakdown = {
   salePrice: number;
   lineItems: PricingLineItem[];
   addOns: Array<{ id: AddOnId; label: string; amount: number; taxable: boolean }>;
+  warrantyLine: { label: string; amount: number; contractNumber: string } | null;
+  tireRimLine: { label: string; amount: number; contractNumber: string } | null;
   // Convenience numerics
   docFee: number;
   licensing: number;
@@ -193,6 +198,8 @@ export function computePricing(
   salePrice: number,
   listingType: ListingType,
   selectedAddOnIds: AddOnId[] = [],
+  warranty: WarrantySelection | null = null,
+  tireRim: TireRimSelection | null = null,
 ): PricingBreakdown {
   const lineItems: PricingLineItem[] = [];
   let docFee = 0;
@@ -239,20 +246,42 @@ export function computePricing(
     .filter((a): a is AddOn => Boolean(a))
     .map((a) => ({ id: a.id, label: a.label, amount: a.price, taxable: a.taxable }));
 
+  // BridgeWarranty + Tire & Rim — taxable line items added on top.
+  const warrantyLine = warranty
+    ? {
+        label: `Vehicle Service Contract — ${warranty.planName}`,
+        amount: warranty.total,
+        contractNumber: warranty.contractNumber,
+      }
+    : null;
+  const tireRimLine = tireRim
+    ? {
+        label: `Tire & Rim Protection — ${tireRim.tierName}`,
+        amount: tireRim.total,
+        contractNumber: tireRim.contractNumber,
+      }
+    : null;
+  const warrantyAmount = warrantyLine?.amount ?? 0;
+  const tireRimAmount = tireRimLine?.amount ?? 0;
+
   const taxableBase =
     salePrice +
     lineItems.filter((l) => l.taxable).reduce((sum, l) => sum + l.amount, 0) +
-    addOns.filter((a) => a.taxable).reduce((sum, a) => sum + a.amount, 0);
+    addOns.filter((a) => a.taxable).reduce((sum, a) => sum + a.amount, 0) +
+    warrantyAmount +
+    tireRimAmount;
   const hst = Math.round(taxableBase * HST_RATE);
 
   const lineSum = lineItems.reduce((sum, l) => sum + l.amount, 0);
   const addOnSum = addOns.reduce((sum, a) => sum + a.amount, 0);
-  const total = salePrice + lineSum + addOnSum + hst;
+  const total = salePrice + lineSum + addOnSum + warrantyAmount + tireRimAmount + hst;
 
   return {
     salePrice,
     lineItems,
     addOns,
+    warrantyLine,
+    tireRimLine,
     docFee,
     licensing,
     hst,
