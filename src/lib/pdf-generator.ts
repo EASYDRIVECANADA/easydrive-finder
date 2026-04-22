@@ -233,7 +233,7 @@ export async function generateBillOfSalePdf(order: Order): Promise<Uint8Array> {
 
   drawHeading(ctx, "Buyer");
   const c = order.customer;
-  drawText(ctx, c.fullName, { bold: true });
+  drawText(ctx, fullName(c), { bold: true });
   drawText(ctx, `${c.addressLine1}, ${c.city}, ${c.province} ${c.postalCode}`, {
     color: MUTED,
     size: 9,
@@ -246,12 +246,23 @@ export async function generateBillOfSalePdf(order: Order): Promise<Uint8Array> {
   drawKV(ctx, "Trim", v.trim);
   drawKV(ctx, "VIN", v.vin);
   drawKV(ctx, "Stock #", v.stockNumber);
+  drawKV(ctx, "Listing type", v.listingType);
+  drawKV(ctx, "Sold by", v.sellerName);
 
   drawHeading(ctx, "Pricing");
   const p = order.pricing;
   drawKV(ctx, "Sale price", fmtMoney(p.salePrice));
-  drawKV(ctx, "Documentation fee", fmtMoney(p.docFee));
-  drawKV(ctx, "Licensing", fmtMoney(p.licensing));
+  for (const li of p.lineItems) {
+    if (li.waived && li.originalAmount) {
+      drawKV(ctx, li.label, `${fmtMoney(li.originalAmount)} — WAIVED`);
+    } else {
+      drawKV(ctx, li.label, fmtMoney(li.amount));
+    }
+  }
+  if (p.addOns.length) {
+    drawText(ctx, "Add-Ons", { size: 9, color: MUTED });
+    for (const a of p.addOns) drawKV(ctx, a.label, fmtMoney(a.amount));
+  }
   drawKV(ctx, "HST (13%)", fmtMoney(p.hst));
   ensureSpace(ctx, 18);
   ctx.page.drawText("Total", { x: MARGIN, y: ctx.y - 12, size: 12, font: ctx.bold, color: INK });
