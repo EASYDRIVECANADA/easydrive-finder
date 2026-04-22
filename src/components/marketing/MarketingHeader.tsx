@@ -3,6 +3,7 @@ import { Menu } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EdcLogo } from "./EdcLogo";
+import { AccountTypeSwitcher } from "./AccountTypeSwitcher";
 
 const nav = [
   { to: "/" as const, label: "Home" },
@@ -32,6 +33,7 @@ export function MarketingHeader() {
           ))}
         </nav>
         <div className="hidden items-center gap-2 md:flex">
+          <AccountTypeSwitcher />
           <Button asChild variant="ghost" size="sm" className="rounded-full">
             <Link to="/login">Dealer Login</Link>
           </Button>
