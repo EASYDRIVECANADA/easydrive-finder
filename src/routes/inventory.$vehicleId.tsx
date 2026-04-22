@@ -118,10 +118,12 @@ function VehicleDetail() {
               <div className="text-3xl font-bold">${v.salePrice.toLocaleString()}</div>
               <div className="mt-1 text-xs text-muted-foreground">+ taxes & licensing</div>
               <Button
+                asChild
                 className="mt-5 w-full rounded-full bg-brand text-brand-foreground hover:bg-brand/90"
-                onClick={() => toast.success("Reserved! A team member will reach out shortly.")}
               >
-                Reserve this vehicle
+                <Link to="/checkout/$vehicleId" params={{ vehicleId: v.id }}>
+                  Buy this vehicle
+                </Link>
               </Button>
               <Button asChild variant="outline" className="mt-2 w-full rounded-full">
                 <Link to="/financing">Get pre-approved</Link>
