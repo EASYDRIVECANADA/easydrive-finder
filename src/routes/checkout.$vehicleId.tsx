@@ -291,8 +291,8 @@ function CheckoutPage() {
     },
     pricing,
     selectedAddOnIds: selectedAddOns,
-    warranty: null,
-    warrantyDeclined: false,
+    warranty: warrantySelection,
+    warrantyDeclined: warrantyDeclined,
     tireRim: null,
     vehicleId: vehicle.id,
     documents: { licenceFront: null, licenceBack: null, insurance: null },
@@ -337,7 +337,22 @@ function CheckoutPage() {
                   onBack={setLicenceBack}
                 />
               )}
-              {STEPS[step].key === "addons" && (
+              {STEPS[step].key === "warranty" && (
+                <StepWarranty
+                  vehicle={{
+                    year: vehicle.year,
+                    make: vehicle.make,
+                    model: vehicle.model,
+                    mileage: vehicle.mileage,
+                  }}
+                  selection={warrantySelection}
+                  setSelection={setWarrantySelection}
+                  declined={warrantyDeclined}
+                  setDeclined={setWarrantyDeclined}
+                  termsAck={warrantyTermsAck}
+                  setTermsAck={setWarrantyTermsAck}
+                />
+              )}
                 <StepAddOns
                   selected={selectedAddOns}
                   setSelected={setSelectedAddOns}
