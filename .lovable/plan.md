@@ -1,57 +1,47 @@
 
 
-## Capture the real DMS and rebuild to match
+## Rebuild from EasyDriveCanada source code
 
-Since you own the site, we can pull the actual logged-in DMS UI and use it as the spec instead of guessing from one screenshot.
+If you can share the real codebase, I'll mirror its DMS structure into this clone exactly.
 
-### Step 1 — You provide access (one of these)
+### What to share (best → acceptable)
 
-Pick whichever is easiest:
+1. **GitHub repo access** (best) — Add the Lovable GitHub app or invite a collaborator to a private repo. I can then read every file directly via `cross_project` tools or by you connecting it to a Lovable project I can read from.
+2. **ZIP of the repo** — Export from GitHub (Code → Download ZIP) or your local folder, upload here. I'll unzip and read it.
+3. **Netlify/Vercel build output** — Less useful (minified, no source). Only helpful if source is unavailable.
+4. **Specific files pasted in chat** — Works for small targeted pieces (e.g. just the Bill of Sale component).
 
-- **A. Credentials**: Paste a dealer login (email + password) into the chat. I'll use the browser tool to log in at easydrivecanada.com, walk every DMS screen, and screenshot each one. Recommended: create a temporary throwaway account with demo data, not your real admin.
-- **B. You drive, I watch**: Record a 3–5 min screen recording (Loom, QuickTime, etc.) clicking through every DMS tab — Inventory (incl. add/edit vehicle modal), Leads detail, Customers, Bill of Sale builder (every step), E-Signature, Reports, Billing, Directory, Vendors, Marketplace. Upload it here.
-- **C. Screenshot pack**: Take full-page screenshots of each DMS screen + every modal/drawer (add vehicle, lead detail, BoS step 1/2/3, etc.) and upload them as a batch.
+### What I'll extract from the source
 
-Option A is fastest and most thorough. B is best for capturing interactions/flows. C is fine if you only care about static layouts.
+- **Routes/pages**: full list of DMS screens and their URL structure
+- **Components**: real component names, props, layout structure for Inventory table, BoS form, Reports, etc.
+- **Forms**: exact field names, validation, step order (especially Bill of Sale)
+- **Data models**: vehicle/customer/lead/sale shapes → update `src/data/*.ts` to match
+- **Styling**: real color tokens, fonts, spacing, logo asset
+- **Sidebar nav**: exact labels, icons, grouping, order
 
-### Step 2 — I capture and catalog (only if option A)
+### What I'll do with it
 
-Using the browser tool, I will:
-1. Navigate to easydrivecanada.com, log in with your credentials.
-2. Visit each DMS route, take a full-page screenshot at 1440×900.
-3. Open every "Add", "Edit", "New" modal/drawer and screenshot each.
-4. For tables, capture column headers, sample rows, filter chips, status badges, action menus.
-5. Save all screenshots to `/mnt/documents/edc-capture/` so you have the reference set too.
-6. Log out, clear session.
+1. Catalog every DMS route + its component tree.
+2. Update `src/data/*.ts` mock data to match real schemas (same field names/types).
+3. Rewrite each `/dealer/*` route file to mirror the real screen's layout, columns, form fields, and copy.
+4. Update `DealerSidebar.tsx` nav to match real order/labels/icons.
+5. Pull the real logo + color values into `EdcLogo.tsx` and `src/styles.css`.
+6. Keep everything mock-only — no real API calls, no DB, no auth (per original plan).
 
-I will NOT: change any data, click destructive actions (delete, archive, send), submit forms, or touch billing/payment screens beyond viewing.
+### What I won't copy
 
-### Step 3 — Rebuild each screen to match
+- Backend/server code, API routes, database schemas, env files, secrets
+- Auth logic (still mock login)
+- Any proprietary integrations (payment processors, e-sign vendors, credit bureaus)
+- License-restricted assets (only fonts/icons/images you have rights to)
 
-For each captured screen, I'll update the corresponding `/dealer/*` route to match the real layout:
-- Exact column order, labels, widths
-- Real field names in forms (Bill of Sale especially — taxes, fees, trade-in, lien payout fields)
-- Correct status badge colors and labels
-- Modal/drawer structures and field groupings
-- Sidebar nav order, icons, section grouping
-- Branding: real EDC logo, exact navy/blue values, fonts
+### How to share
 
-Mock data stays mock — only the UI structure changes to mirror the real product.
+Pick one and tell me which:
+- **A**: I'll add the Lovable GitHub app to the EDC repo (you give me the org/repo name once connected)
+- **B**: You upload a ZIP of the repo to this chat
+- **C**: You paste specific files (tell me which screens to prioritize)
 
-### Step 4 — Diff review
-
-I'll post before/after screenshots (current clone vs. real DMS vs. updated clone) so you can confirm fidelity per screen.
-
-### What I need from you to start
-
-Reply with:
-1. Which option (A, B, or C)
-2. If A: the login URL + credentials (and confirmation it's a safe-to-use account)
-3. Any screens to skip or prioritize
-
-### Security notes
-
-- Credentials pasted in chat are visible in the conversation history. After capture, rotate the password.
-- I'll use a fresh browser session, won't save cookies, and won't reuse the login outside this task.
-- If the site has 2FA, option A won't work — use B or C.
+Also confirm: any folders/files to skip (e.g. `/server`, `/api`, `.env*`, payment integration code)?
 
