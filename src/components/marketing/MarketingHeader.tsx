@@ -52,7 +52,9 @@ export function MarketingHeader() {
       {open && (
         <div className="border-t border-border/60 bg-background md:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
-            {nav.map((n) => (
+            <div className="px-1 pb-2">
+              <AccountTypeSwitcher compact />
+            </div>
               <Link
                 key={n.to}
                 to={n.to}
