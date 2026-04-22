@@ -72,7 +72,7 @@ export const Route = createFileRoute("/inventory/$vehicleId")({
 function VehicleDetail() {
   const v = Route.useLoaderData();
   const [dealPending, setDealPending] = useState(false);
-  const lt = LISTING_TYPE_STYLES[v.listingType];
+  const lt = LISTING_TYPE_STYLES[v.listingType as keyof typeof LISTING_TYPE_STYLES];
 
   useEffect(() => {
     setDealPending(Boolean(activeOrderForVehicle(v.id)));
