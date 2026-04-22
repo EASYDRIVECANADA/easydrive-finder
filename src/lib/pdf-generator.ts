@@ -1,6 +1,6 @@
 // Client-side PDF generation for Bill of Sale and 30-Day Dealer Guarantee.
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
-import type { Order } from "@/lib/orders";
+import { fullName, type Order } from "@/lib/orders";
 
 const BRAND = rgb(0.231, 0.620, 1); // ~#3b9eff
 const INK = rgb(0.04, 0.09, 0.16);

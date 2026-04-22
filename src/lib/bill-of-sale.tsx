@@ -56,8 +56,34 @@ export function BillOfSaleContent({ order }: { order: Order }) {
       <table className="not-prose w-full text-sm">
         <tbody className="divide-y divide-border">
           <Row k="Sale price" v={`$${pricing.salePrice.toLocaleString()}`} />
-          <Row k="Documentation fee" v={`$${pricing.docFee.toLocaleString()}`} />
-          <Row k="Licensing" v={`$${pricing.licensing.toLocaleString()}`} />
+          {pricing.lineItems.map((li) => (
+            <tr key={li.label}>
+              <td className="py-1.5 text-muted-foreground">
+                {li.label}
+                {li.note && <span className="ml-1 text-xs text-success">({li.note})</span>}
+              </td>
+              <td className="py-1.5 text-right tabular-nums">
+                {li.waived && li.originalAmount ? (
+                  <>
+                    <span className="mr-2 text-muted-foreground line-through">
+                      ${li.originalAmount.toLocaleString()}
+                    </span>
+                    <span className="font-semibold text-success">WAIVED</span>
+                  </>
+                ) : (
+                  `$${li.amount.toLocaleString()}`
+                )}
+              </td>
+            </tr>
+          ))}
+          {pricing.addOns.length > 0 && (
+            <>
+              <tr><td colSpan={2} className="pt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Add-Ons</td></tr>
+              {pricing.addOns.map((a) => (
+                <Row key={a.id} k={a.label} v={`$${a.amount.toLocaleString()}`} />
+              ))}
+            </>
+          )}
           <Row k="HST (13%)" v={`$${pricing.hst.toLocaleString()}`} />
           <tr className="border-t-2 border-foreground/40">
             <td className="py-2 font-bold">Total</td>
