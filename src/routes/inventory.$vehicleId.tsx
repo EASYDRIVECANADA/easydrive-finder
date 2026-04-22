@@ -2,15 +2,21 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
-import { getVehicleById } from "@/data/vehicles";
+import { getVehicleById, LISTING_TYPE_STYLES } from "@/data/vehicles";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { PhotoCarousel } from "@/components/listing/PhotoCarousel";
 import { DisclosureDialog } from "@/components/listing/DisclosureDialog";
 import { CarfaxDialog } from "@/components/listing/CarfaxDialog";
 import { AskQuestionDialog } from "@/components/listing/AskQuestionDialog";
+import { FinanceCalculator } from "@/components/marketing/FinanceCalculator";
+import { VEHICLE_FINANCE_FAQS } from "@/data/financing-faqs";
 import {
   CheckCircle2,
   ChevronRight,
@@ -23,6 +29,7 @@ import {
   Calendar,
   Gauge,
   Banknote,
+  HelpCircle,
 } from "lucide-react";
 import { activeOrderForVehicle } from "@/lib/orders";
 
