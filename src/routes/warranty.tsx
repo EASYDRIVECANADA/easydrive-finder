@@ -195,7 +195,7 @@ function QuoteResults({
 }: {
   vehicle: { year: number; mileage: number; make: string; model: string };
   eligibleSlugs: Set<string>;
-  ineligibleReasons: { planSlug: string; reason: string }[];
+  ineligibleReasons: { planSlug: string; reason?: string }[];
 }) {
   const grouped = getGroupedPlans("A-Protect");
   const visible = grouped.filter(
