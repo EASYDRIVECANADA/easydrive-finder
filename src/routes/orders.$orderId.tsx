@@ -365,6 +365,22 @@ function InsuranceUpload({ order }: { order: Order }) {
 
 function SignedDocs({ order }: { order: Order }) {
   const [show, setShow] = useState<"bos" | "guarantee" | null>(null);
+  const [downloading, setDownloading] = useState<"bos" | "guarantee" | null>(null);
+
+  const handleDownload = async (kind: "bos" | "guarantee") => {
+    try {
+      setDownloading(kind);
+      const { downloadOrderPdf } = await import("@/lib/pdf-generator");
+      await downloadOrderPdf(kind, order);
+      toast.success("PDF downloaded");
+    } catch (e) {
+      toast.error("Failed to generate PDF");
+      console.error(e);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   return (
     <Card>
       <h3 className="text-lg font-semibold">Signed documents</h3>
@@ -379,13 +395,17 @@ function SignedDocs({ order }: { order: Order }) {
                 ? "Pending dealer signature"
                 : "Unsigned"
           }
-          onClick={() => setShow("bos")}
+          onPreview={() => setShow("bos")}
+          onDownload={() => handleDownload("bos")}
+          downloading={downloading === "bos"}
         />
         <DocButton
           icon={ShieldCheck}
           label="30-Day Dealer Guarantee"
           status={order.signatures.dealerGuaranteeCustomer ? "Signed" : "Unsigned"}
-          onClick={() => setShow("guarantee")}
+          onPreview={() => setShow("guarantee")}
+          onDownload={() => handleDownload("guarantee")}
+          downloading={downloading === "guarantee"}
         />
       </div>
 
@@ -422,28 +442,42 @@ function DocButton({
   icon: Icon,
   label,
   status,
-  onClick,
+  onPreview,
+  onDownload,
+  downloading,
 }: {
   icon: typeof FileText;
   label: string;
   status: string;
-  onClick: () => void;
+  onPreview: () => void;
+  onDownload: () => void;
+  downloading: boolean;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex items-center gap-3 rounded-xl border border-border bg-background p-3 text-left hover:bg-muted/40"
-    >
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand/10 text-brand">
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="flex-1">
-        <div className="text-sm font-medium">{label}</div>
-        <div className="text-xs text-muted-foreground">{status}</div>
-      </div>
-      <Download className="h-4 w-4 text-muted-foreground" />
-    </button>
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+      <button
+        type="button"
+        onClick={onPreview}
+        className="flex flex-1 items-center gap-3 text-left"
+      >
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand/10 text-brand">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <div className="text-sm font-medium">{label}</div>
+          <div className="text-xs text-muted-foreground">{status}</div>
+        </div>
+      </button>
+      <button
+        type="button"
+        onClick={onDownload}
+        disabled={downloading}
+        title="Download PDF"
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/40 hover:text-foreground disabled:opacity-50"
+      >
+        <Download className={`h-4 w-4 ${downloading ? "animate-pulse" : ""}`} />
+      </button>
+    </div>
   );
 }
 
