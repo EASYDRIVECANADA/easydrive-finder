@@ -160,6 +160,7 @@ function CheckoutPage() {
     switch (STEPS[step].key) {
       case "customer":  return customerSchema.safeParse(customer).success;
       case "licence":   return !!licenceFront && !!licenceBack;
+      case "warranty":  return (warrantySelection !== null || warrantyDeclined) && (warrantyDeclined || warrantyTermsAck);
       case "addons":    return true;
       case "carfax":    return !!carfaxInitial && carfaxAck;
       case "bos":       return bosTyped.trim().length > 1 && !!bosDrawn && bosAgree;
