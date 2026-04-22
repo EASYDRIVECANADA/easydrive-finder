@@ -100,7 +100,17 @@ function CheckoutPage() {
   const existing = typeof window !== "undefined" ? activeOrderForVehicle(vehicle.id) : undefined;
 
   const [step, setStep] = useState(0);
-  const [orderId] = useState(() => generateOrderId());
+  const [orderId, setOrderId] = useState<string>("");
+  // Generate orderId only on the client to avoid SSR hydration mismatch
+  if (typeof window !== "undefined" && !orderId) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    // Set synchronously during render — safe because guarded by empty check
+  }
+  // Use effect for stable client-only id
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useMemo(() => {
+    if (typeof window !== "undefined" && !orderId) setOrderId(generateOrderId());
+  }, [orderId]);
 
   const [customer, setCustomer] = useState<CustomerInfo>({
     firstName: "",
