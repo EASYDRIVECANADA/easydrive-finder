@@ -13,6 +13,7 @@ import { SignaturePad } from "@/components/checkout/SignaturePad";
 import { BillOfSaleContent } from "@/lib/bill-of-sale";
 import { DealerGuaranteeContent } from "@/lib/dealer-guarantee";
 import { getVehicleById, LISTING_TYPE_STYLES } from "@/data/vehicles";
+import { useDealerConfig } from "@/lib/dealer-config";
 import {
   ADDONS,
   computePricing,
