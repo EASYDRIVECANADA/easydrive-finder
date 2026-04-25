@@ -606,11 +606,15 @@ function StepAddOns({
   selected: AddOnId[];
   setSelected: (s: AddOnId[]) => void;
 }) {
+  // Pull live, dealer-managed catalog (filtered to customer-visible items).
+  const cfg = useDealerConfig();
+  const catalog = cfg.products.filter((p) => p.customerVisible);
+
   const toggle = (a: AddOn) => {
     // For grouped tiers (warranty/ppf/ceramic), selecting one deselects siblings.
     if (a.group === "ppf" || a.group === "ceramic") {
-      const sameGroupIds = ADDONS.filter((x) => x.group === a.group).map((x) => x.id);
-      const others = selected.filter((id) => !sameGroupIds.includes(id));
+      const sameGroupIds = catalog.filter((x) => x.group === a.group).map((x) => x.id);
+      const others = selected.filter((id) => !sameGroupIds.includes(id as AddOnId));
       const isOn = selected.includes(a.id);
       setSelected(isOn ? others : [...others, a.id]);
     } else {
