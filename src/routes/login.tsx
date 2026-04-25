@@ -8,8 +8,8 @@ import { ArrowRight } from "lucide-react";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Dealer Login — EasyDrive Canada" },
-      { name: "description", content: "Sign in to the EasyDrive Canada dealer portal." },
+      { title: "Login — EasyDrive Canada" },
+      { name: "description", content: "Sign in to your EasyDrive Canada account." },
     ],
   }),
   component: LoginPage,
@@ -23,7 +23,7 @@ function LoginPage() {
         <div className="w-full max-w-sm">
           <EdcLogo />
           <h1 className="mt-10 text-3xl font-bold tracking-tight">Welcome back</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Sign in to your dealer account.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in to your account.</p>
           <form
             className="mt-8 space-y-5"
             onSubmit={(e) => {
@@ -33,14 +33,14 @@ function LoginPage() {
           >
             <div>
               <Label>Email</Label>
-              <Input type="email" defaultValue="dealer@easydrivecanada.com" className="mt-1" />
+              <Input type="email" defaultValue="you@example.com" className="mt-1" />
             </div>
             <div>
               <Label>Password</Label>
               <Input type="password" defaultValue="••••••••" className="mt-1" />
             </div>
             <Button type="submit" className="w-full rounded-full bg-brand text-brand-foreground hover:bg-brand/90">
-              Sign in as Dealer <ArrowRight className="ml-1.5 h-4 w-4" />
+              Sign in <ArrowRight className="ml-1.5 h-4 w-4" />
             </Button>
           </form>
           <p className="mt-6 text-center text-xs text-muted-foreground">

@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect } from "react";
 import { PageHeader } from "@/components/dealer/PageHeader";
 import { sales, type SaleStatus } from "@/data/sales";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { listOrders, updateOrder, addEvent, type Order, type OrderStatus } from "@/lib/orders";
-import { markSalesSeen } from "@/lib/dealer-notifications";
+import { updateOrder, addEvent, type Order, type OrderStatus } from "@/lib/orders";
+import { markSalesSeen, useDealerOrders } from "@/lib/dealer-notifications";
 import { CheckCircle2, FileSignature, Plus, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,25 +22,9 @@ const statusBadge: Record<SaleStatus, string> = {
   Delivered: "bg-success/15 text-success hover:bg-success/15",
 };
 
-function useOrders(): Order[] {
-  return useSyncExternalStore(
-    (cb) => {
-      const h = () => cb();
-      window.addEventListener("edc.orders.updated", h);
-      window.addEventListener("storage", h);
-      return () => {
-        window.removeEventListener("edc.orders.updated", h);
-        window.removeEventListener("storage", h);
-      };
-    },
-    () => listOrders(),
-    () => [] as Order[],
-  );
-}
-
 function SalesPage() {
   const totalRevenue = sales.reduce((acc, s) => acc + s.total, 0);
-  const orders = useOrders();
+  const orders = useDealerOrders();
   const requestCount = orders.filter((o) => o.status !== "picked_up" && o.status !== "cancelled").length;
   // Visiting Sales clears the "new orders" badge in the header.
   useEffect(() => { markSalesSeen(); }, []);

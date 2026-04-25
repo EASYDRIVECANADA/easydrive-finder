@@ -237,6 +237,16 @@ function NewSale() {
             <Button type="submit" className="mt-5 w-full rounded-full bg-brand text-brand-foreground hover:bg-brand/90">
               Create bill of sale
             </Button>
+            <BillOfSalePreview
+              vehicle={vehicle}
+              salePrice={salePrice}
+              tradeIn={tradeIn}
+              docFee={docFee}
+              licensing={licensing}
+              extras={extras}
+              taxes={taxes}
+              total={total}
+            />
           </div>
         </aside>
       </form>
@@ -437,5 +447,105 @@ function AddProductDialog({ onAdd }: { onAdd: (line: ExtraLine) => void }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ── Bill of Sale preview ────────────────────────────────────────
+function BillOfSalePreview({
+  vehicle,
+  salePrice,
+  tradeIn,
+  docFee,
+  licensing,
+  extras,
+  taxes,
+  total,
+}: {
+  vehicle: ReturnType<typeof vehicles.find> & {};
+  salePrice: number;
+  tradeIn: number;
+  docFee: number;
+  licensing: number;
+  extras: ExtraLine[];
+  taxes: number;
+  total: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const today = new Date().toLocaleDateString("en-CA");
+  if (!vehicle) return null;
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" className="mt-2 w-full rounded-full">
+          Preview digital bill of sale
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Bill of Sale — Preview</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 text-sm">
+          <div className="flex justify-between border-b pb-3">
+            <div>
+              <div className="font-bold text-base">EasyDrive Canada</div>
+              <div className="text-xs text-muted-foreground">Toronto, Ontario · info@easydrivecanada.com</div>
+            </div>
+            <div className="text-right text-xs">
+              <div className="font-semibold">DRAFT</div>
+              <div className="text-muted-foreground">Date: {today}</div>
+            </div>
+          </div>
+          <section>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vehicle</div>
+            <div className="mt-1">{vehicle.year} {vehicle.make} {vehicle.model} — {vehicle.trim}</div>
+            <div className="text-xs text-muted-foreground">VIN {vehicle.vin} · Stock #{vehicle.stockNumber}</div>
+          </section>
+          <section>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pricing</div>
+            <table className="mt-1 w-full">
+              <tbody className="divide-y divide-border">
+                <PRow k="Sale price" v={salePrice} />
+                {tradeIn > 0 && <PRow k="Trade-in" v={-tradeIn} />}
+                {extras.map((e) => (
+                  <PRow key={e.id} k={e.label} v={e.retail} />
+                ))}
+                <PRow k="Doc fee" v={docFee} />
+                <PRow k="Licensing" v={licensing} />
+                <PRow k="HST (13%)" v={taxes} />
+                <tr className="border-t-2 border-foreground/40">
+                  <td className="py-2 font-bold">Total</td>
+                  <td className="py-2 text-right font-bold tabular-nums">${total.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+          <section>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Signatures</div>
+            <div className="mt-3 grid grid-cols-2 gap-6">
+              <div>
+                <div className="h-12 border-b border-foreground/40" />
+                <div className="mt-1 text-xs text-muted-foreground">Buyer signature</div>
+              </div>
+              <div>
+                <div className="h-12 border-b border-foreground/40" />
+                <div className="mt-1 text-xs text-muted-foreground">Dealer signature</div>
+              </div>
+            </div>
+          </section>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PRow({ k, v }: { k: string; v: number }) {
+  return (
+    <tr>
+      <td className="py-1.5 text-muted-foreground">{k}</td>
+      <td className="py-1.5 text-right tabular-nums">${v.toLocaleString()}</td>
+    </tr>
   );
 }
