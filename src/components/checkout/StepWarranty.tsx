@@ -66,7 +66,7 @@ export function StepWarranty({
   const [termIndex, setTermIndex] = useState(0);
   const [extras, setExtras] = useState<string[]>([]);
 
-  const cfg = useDealerConfig();
+  const cfg = cfgEarly;
 
   const costQuote: WarrantyQuote | null = useMemo(() => {
     if (!activePlan) return null;
