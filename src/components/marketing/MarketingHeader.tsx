@@ -37,7 +37,7 @@ export function MarketingHeader() {
         <div className="hidden items-center gap-2 md:flex">
           <AccountTypeSwitcher />
           <Button asChild variant="ghost" size="sm" className="rounded-full">
-            <Link to="/login">Dealer Login</Link>
+            <Link to="/login">Login</Link>
           </Button>
           <Button asChild size="sm" className="rounded-full bg-brand text-brand-foreground hover:bg-brand/90">
             <Link to="/financing">Get Pre-Approved</Link>
@@ -72,7 +72,7 @@ export function MarketingHeader() {
               onClick={() => setOpen(false)}
               className="rounded-md px-3 py-2 text-sm font-medium hover:bg-muted"
             >
-              Dealer Login
+              Login
             </Link>
             <Link
               to="/financing"
