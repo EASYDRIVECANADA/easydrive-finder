@@ -344,7 +344,7 @@ export function getDealerProducts(cfg?: DealerConfig): DealerProductConfig[] {
 
 /** Convenience: list every plan in the catalog regardless of grouping. */
 export function listAllPlans(): WarrantyPlan[] {
-  return warrantyPlans;
+  return getAllPlans();
 }
 
 // ── Retail-aware warranty quote ─────────────────────────────────
