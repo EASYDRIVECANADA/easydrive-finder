@@ -408,7 +408,11 @@ function QuoteCard({
 
 // ── Plan grid (browse all) ────────────────────────────────────────
 function PlanGrid() {
-  const grouped = getGroupedPlans("A-Protect");
+  const cfg = useDealerConfig();
+  const grouped = getGroupedPlans("A-Protect").filter((p) => {
+    if (p.group) return getPlansByGroup(p.group).some((sub) => isPlanEnabled(cfg, sub.slug));
+    return isPlanEnabled(cfg, p.slug);
+  });
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const open = openSlug ? warrantyPlans.find((p) => p.slug === openSlug) : null;
 
