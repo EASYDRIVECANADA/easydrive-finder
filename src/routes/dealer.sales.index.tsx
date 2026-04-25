@@ -207,6 +207,7 @@ function SaleRequestCard({ order }: { order: Order }) {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs font-semibold">{order.id}</span>
+            <Badge className="bg-brand/15 text-brand hover:bg-brand/15">Online</Badge>
             <Badge className={`${statusCls[order.status]} hover:${statusCls[order.status]}`}>
               {statusLabel[order.status]}
             </Badge>
