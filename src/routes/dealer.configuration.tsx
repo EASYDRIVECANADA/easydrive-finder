@@ -28,9 +28,6 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
-  getProviders,
-  getPlansByProvider,
-  getPlanBySlug,
   type WarrantyPlan,
 } from "@/lib/bridgewarranty";
 import {
@@ -47,8 +44,18 @@ import {
   getRetail,
   upsertProduct,
   deleteProduct,
+  getAllProviders,
+  getAllPlansByProvider,
+  getPlanBySlug,
   type DealerProductConfig,
 } from "@/lib/dealer-config";
+import {
+  upsertCustomPlan,
+  deleteCustomPlan,
+  blankCustomPlan,
+  blankTier,
+  useCustomWarranty,
+} from "@/lib/custom-warranty";
 
 export const Route = createFileRoute("/dealer/configuration")({
   head: () => ({ meta: [{ title: "Configuration — Dealer Portal" }] }),
