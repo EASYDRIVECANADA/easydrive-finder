@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { PageHeader } from "@/components/dealer/PageHeader";
 import { sales, type SaleStatus } from "@/data/sales";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { listOrders, updateOrder, addEvent, type Order, type OrderStatus } from "@/lib/orders";
+import { markSalesSeen } from "@/lib/dealer-notifications";
 import { CheckCircle2, FileSignature, Plus, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 
