@@ -122,6 +122,9 @@ function ConfigurationPage() {
 function WarrantyConfigTab() {
   const [providerSlug, setProviderSlug] = useState<string | null>(null);
   const [planSlug, setPlanSlug] = useState<string | null>(null);
+  const [showAddPlan, setShowAddPlan] = useState(false);
+  // Subscribe so the list re-renders when a custom plan is added/removed.
+  useCustomWarranty();
   const providers = getAllProviders();
 
   if (!providerSlug) {
@@ -129,8 +132,13 @@ function WarrantyConfigTab() {
       <div className="space-y-4">
         <Crumbs items={[{ label: "Providers" }]} />
         <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Providers ({providers.length})
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Providers ({providers.length})
+            </div>
+            <Button size="sm" onClick={() => setShowAddPlan(true)}>
+              <Plus className="mr-1.5 h-4 w-4" /> Add custom plan
+            </Button>
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {providers.map((prov) => {
@@ -157,6 +165,16 @@ function WarrantyConfigTab() {
             })}
           </div>
         </div>
+        {showAddPlan && (
+          <CustomPlanDialog
+            onClose={() => setShowAddPlan(false)}
+            onSaved={(slug, prov) => {
+              setShowAddPlan(false);
+              setProviderSlug(prov);
+              setPlanSlug(slug);
+            }}
+          />
+        )}
       </div>
     );
   }
