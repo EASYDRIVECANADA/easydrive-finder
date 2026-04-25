@@ -47,6 +47,7 @@ export function DealerSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const newOrders = useNewOrderCount();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
