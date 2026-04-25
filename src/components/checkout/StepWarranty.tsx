@@ -17,6 +17,7 @@ import {
   type WarrantyQuote,
 } from "@/lib/bridgewarranty";
 import type { WarrantySelection } from "@/lib/orders";
+import { useDealerConfig, toRetailQuote, getRetailForAddOn } from "@/lib/dealer-config";
 
 type Props = {
   vehicle: { year: number; make: string; model: string; mileage: number };
