@@ -31,8 +31,10 @@ import {
   getRetail,
   getDealerProducts,
   isPlanEnabled,
+  getAllPlans,
+  getPlanBySlug,
 } from "@/lib/dealer-config";
-import { warrantyPlans, getPlanBySlug } from "@/lib/bridgewarranty";
+import { useCustomWarranty } from "@/lib/custom-warranty";
 
 export const Route = createFileRoute("/dealer/sales/new")({
   head: () => ({ meta: [{ title: "New Bill of Sale — Dealer Portal" }] }),
