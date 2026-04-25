@@ -652,7 +652,7 @@ function StepAddOns({
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((a) => {
-                  const on = selected.includes(a.id);
+                  const on = selected.includes(a.id as AddOnId);
                   return (
                     <button
                       key={a.id}
