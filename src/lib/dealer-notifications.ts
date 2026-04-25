@@ -42,7 +42,7 @@ function getOrdersSnapshot(): Order[] {
 
 const EMPTY_ORDERS: Order[] = [];
 
-function useOrders(): Order[] {
+export function useDealerOrders(): Order[] {
   return useSyncExternalStore(
     (cb) => {
       const h = () => cb();
@@ -57,6 +57,8 @@ function useOrders(): Order[] {
     () => EMPTY_ORDERS,
   );
 }
+
+const useOrders = useDealerOrders;
 
 /** Count of orders created since the dealer last opened the Sales page. */
 export function useNewOrderCount(): number {
