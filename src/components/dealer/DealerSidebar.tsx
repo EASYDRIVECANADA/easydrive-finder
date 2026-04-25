@@ -23,6 +23,7 @@ import {
   BarChart3,
   CreditCard,
   UserCog,
+  Settings2,
   LogOut,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ const items = [
   { to: "/dealer/reports" as const, label: "Reports", icon: BarChart3, exact: false },
   { to: "/dealer/billing" as const, label: "Billing", icon: CreditCard, exact: false },
   { to: "/dealer/directory" as const, label: "Directory", icon: UserCog, exact: false },
+  { to: "/dealer/configuration" as const, label: "Configuration", icon: Settings2, exact: false },
 ];
 
 export function DealerSidebar() {
