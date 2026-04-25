@@ -13,6 +13,7 @@ import { SignaturePad } from "@/components/checkout/SignaturePad";
 import { BillOfSaleContent } from "@/lib/bill-of-sale";
 import { DealerGuaranteeContent } from "@/lib/dealer-guarantee";
 import { getVehicleById, LISTING_TYPE_STYLES } from "@/data/vehicles";
+import { useDealerConfig } from "@/lib/dealer-config";
 import {
   ADDONS,
   computePricing,
@@ -606,11 +607,15 @@ function StepAddOns({
   selected: AddOnId[];
   setSelected: (s: AddOnId[]) => void;
 }) {
+  // Pull live, dealer-managed catalog (filtered to customer-visible items).
+  const cfg = useDealerConfig();
+  const catalog = cfg.products.filter((p) => p.customerVisible);
+
   const toggle = (a: AddOn) => {
     // For grouped tiers (warranty/ppf/ceramic), selecting one deselects siblings.
     if (a.group === "ppf" || a.group === "ceramic") {
-      const sameGroupIds = ADDONS.filter((x) => x.group === a.group).map((x) => x.id);
-      const others = selected.filter((id) => !sameGroupIds.includes(id));
+      const sameGroupIds = catalog.filter((x) => x.group === a.group).map((x) => x.id);
+      const others = selected.filter((id) => !sameGroupIds.includes(id as AddOnId));
       const isOn = selected.includes(a.id);
       setSelected(isOn ? others : [...others, a.id]);
     } else {
@@ -633,7 +638,7 @@ function StepAddOns({
 
       <div className="mt-6 space-y-6">
         {groups.map((g) => {
-          const items = ADDONS.filter((a) => a.group === g.key);
+          const items = catalog.filter((a) => a.group === g.key);
           return (
             <section key={g.key}>
               <div className="flex items-center justify-between">
@@ -647,12 +652,12 @@ function StepAddOns({
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((a) => {
-                  const on = selected.includes(a.id);
+                  const on = selected.includes(a.id as AddOnId);
                   return (
                     <button
                       key={a.id}
                       type="button"
-                      onClick={() => toggle(a)}
+                      onClick={() => toggle(a as unknown as AddOn)}
                       className={cn(
                         "rounded-2xl border p-4 text-left transition",
                         on ? "border-brand bg-brand/5 ring-2 ring-brand/30" : "border-border bg-card hover:border-foreground/20",

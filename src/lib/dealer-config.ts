@@ -309,3 +309,87 @@ export function getDealerProducts(cfg?: DealerConfig): DealerProductConfig[] {
 export function listAllPlans(): WarrantyPlan[] {
   return warrantyPlans;
 }
+
+// ── Retail-aware warranty quote ─────────────────────────────────
+//
+// `quoteWarranty` in the bridgewarranty module returns COST-based numbers
+// straight from the brochure. For customer-facing surfaces we want the dealer's
+// retail. This helper takes a cost-quote and substitutes each priced row with
+// the configured retail (override OR cost × markup). When `showRetailToCustomers`
+// is OFF, returns null so callers can render "Call for pricing".
+
+import type { WarrantyQuote } from "./bridgewarranty";
+
+export type RetailQuote = WarrantyQuote & { isRetail: true };
+
+export function toRetailQuote(
+  cfg: DealerConfig,
+  costQuote: WarrantyQuote,
+): RetailQuote | null {
+  if (!cfg.showRetailToCustomers) return null;
+  const { planSlug, pricingTier, termIndex } = costQuote;
+  // Find tier index by matching the per-claim amount on the plan.
+  const plan = getPlanBySlug(planSlug);
+  if (!plan) return null;
+  const tierIndex = plan.pricingTiers.findIndex(
+    (t) => t.perClaimAmount === pricingTier.perClaimAmount,
+  );
+  if (tierIndex < 0) return null;
+
+  const retailFor = (rowLabel: string, fallback: number) =>
+    getRetail(cfg, planSlug, tierIndex, termIndex, rowLabel) ?? fallback;
+
+  // For mileage-banded plans (Diamond Plus), there's no "Base Price" row — the
+  // band itself is the base. We don't yet support per-band overrides, so apply
+  // the global markup directly.
+  const hasBaseRow = pricingTier.rows.some((r) => r.label === "Base Price");
+  const basePrice = hasBaseRow
+    ? retailFor("Base Price", costQuote.basePrice)
+    : Math.round(costQuote.basePrice * (1 + cfg.warrantyMarkupPct / 100));
+
+  // Add-on labels in the cost quote may have "(included)" suffix. Strip it
+  // when looking up retail; included rows stay free.
+  let addOnTotal = 0;
+  for (const label of costQuote.selectedAddOnLabels) {
+    if (label.endsWith(" (included)")) continue;
+    // We don't have per-addon cost split here, so look up retail by label.
+    // Fallback: if no override and no markup applies, keep cost share equal.
+    const retail = getRetail(cfg, planSlug, tierIndex, termIndex, label);
+    if (retail != null) {
+      addOnTotal += retail;
+    } else {
+      // Best-effort: split costQuote.addOnTotal proportionally is overkill;
+      // just apply markup to the per-label cost from the catalog.
+      const cost = getCost(plan, tierIndex, termIndex, label) ?? 0;
+      addOnTotal += Math.round(cost * (1 + cfg.warrantyMarkupPct / 100));
+    }
+  }
+
+  const premiumVehicleFee =
+    costQuote.premiumVehicleFee > 0
+      ? retailFor("Premium Vehicle Fee", costQuote.premiumVehicleFee)
+      : 0;
+
+  const total = basePrice + addOnTotal + premiumVehicleFee;
+  return {
+    ...costQuote,
+    basePrice,
+    addOnTotal,
+    premiumVehicleFee,
+    total,
+    monthlyEquivalent:
+      costQuote.termMonths > 0 ? Math.round(total / costQuote.termMonths) : total,
+    isRetail: true,
+  };
+}
+
+/** Retail price for a single optional add-on row at a given term/tier. */
+export function getRetailForAddOn(
+  cfg: DealerConfig,
+  planSlug: string,
+  tierIndex: number,
+  termIndex: number,
+  rowLabel: string,
+): number | null {
+  return getRetail(cfg, planSlug, tierIndex, termIndex, rowLabel);
+}

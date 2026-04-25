@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useNewOrderCount } from "@/lib/dealer-notifications";
 import {
   LayoutDashboard,
   Users,
@@ -46,6 +47,7 @@ export function DealerSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const newOrders = useNewOrderCount();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -81,6 +83,11 @@ export function DealerSidebar() {
                       <Link to={item.to}>
                         <item.icon className="h-4 w-4" />
                         <span>{item.label}</span>
+                        {item.to === "/dealer/sales" && newOrders > 0 && !collapsed && (
+                          <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-bold text-brand-foreground">
+                            {newOrders}
+                          </span>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

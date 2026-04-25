@@ -25,6 +25,7 @@ import {
   type WarrantyPlan,
   type CoverageStatus,
 } from "@/lib/bridgewarranty";
+import { useDealerConfig, toRetailQuote, isPlanEnabled } from "@/lib/dealer-config";
 
 export const Route = createFileRoute("/warranty")({
   head: () => ({
@@ -197,7 +198,12 @@ function QuoteResults({
   eligibleSlugs: Set<string>;
   ineligibleReasons: { planSlug: string; reason?: string }[];
 }) {
-  const grouped = getGroupedPlans("A-Protect");
+  const cfg = useDealerConfig();
+  const grouped = getGroupedPlans("A-Protect").filter((p) => {
+    // Hide group if every sub-plan is disabled; otherwise include.
+    if (p.group) return getPlansByGroup(p.group).some((sub) => isPlanEnabled(cfg, sub.slug));
+    return isPlanEnabled(cfg, p.slug);
+  });
   const visible = grouped.filter(
     (p) =>
       p.slug === "top-up" ||
@@ -258,7 +264,8 @@ function QuoteCard({
   const [tierIndex, setTierIndex] = useState(0);
   const [termIndex, setTermIndex] = useState(0);
 
-  const quote = useMemo(
+  const cfg = useDealerConfig();
+  const costQuote = useMemo(
     () =>
       quoteWarranty({
         plan: active,
@@ -271,6 +278,11 @@ function QuoteCard({
       }),
     [active, tierIndex, termIndex, vehicle],
   );
+  const quote = useMemo(
+    () => (costQuote ? toRetailQuote(cfg, costQuote) : null),
+    [costQuote, cfg],
+  );
+  const retailHidden = !cfg.showRetailToCustomers;
 
   const tier = active.pricingTiers[tierIndex];
 
@@ -359,7 +371,18 @@ function QuoteCard({
         </div>
       )}
 
-      {quote ? (
+      {retailHidden ? (
+        <div className="mt-4 flex items-end justify-between rounded-xl bg-muted/30 p-3">
+          <div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">Your price</div>
+            <div className="text-lg font-bold text-foreground">Call for pricing</div>
+            <div className="text-xs text-muted-foreground">{quote?.termLabel ?? costQuote?.termLabel}</div>
+          </div>
+          <Button asChild size="sm" className="rounded-full bg-foreground text-background hover:bg-foreground/90">
+            <Link to="/contact">Get a quote <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link>
+          </Button>
+        </div>
+      ) : quote ? (
         <div className="mt-4 flex items-end justify-between rounded-xl bg-muted/30 p-3">
           <div>
             <div className="text-xs uppercase tracking-wider text-muted-foreground">Your price</div>
@@ -385,7 +408,11 @@ function QuoteCard({
 
 // ── Plan grid (browse all) ────────────────────────────────────────
 function PlanGrid() {
-  const grouped = getGroupedPlans("A-Protect");
+  const cfg = useDealerConfig();
+  const grouped = getGroupedPlans("A-Protect").filter((p) => {
+    if (p.group) return getPlansByGroup(p.group).some((sub) => isPlanEnabled(cfg, sub.slug));
+    return isPlanEnabled(cfg, p.slug);
+  });
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const open = openSlug ? warrantyPlans.find((p) => p.slug === openSlug) : null;
 

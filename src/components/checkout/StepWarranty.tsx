@@ -17,6 +17,7 @@ import {
   type WarrantyQuote,
 } from "@/lib/bridgewarranty";
 import type { WarrantySelection } from "@/lib/orders";
+import { useDealerConfig, toRetailQuote, getRetailForAddOn, isPlanEnabled } from "@/lib/dealer-config";
 
 type Props = {
   vehicle: { year: number; make: string; model: string; mileage: number };
@@ -45,7 +46,11 @@ export function StepWarranty({
 
   // Powertrain has 4 sub-tiers grouped — show grouped plans, plus expand into
   // sub-plans if Powertrain is the active group.
-  const grouped = getGroupedPlans("A-Protect");
+  const cfgEarly = useDealerConfig();
+  const grouped = getGroupedPlans("A-Protect").filter((p) => {
+    if (p.group) return getPlansByGroup(p.group).some((sub) => isPlanEnabled(cfgEarly, sub.slug));
+    return isPlanEnabled(cfgEarly, p.slug);
+  });
   const plansToShow = grouped.filter(
     (p) => p.slug === "top-up" || eligibleSlugs.has(p.slug) || (p.group && getPlansByGroup(p.group).some((sub) => eligibleSlugs.has(sub.slug))),
   );
@@ -61,7 +66,9 @@ export function StepWarranty({
   const [termIndex, setTermIndex] = useState(0);
   const [extras, setExtras] = useState<string[]>([]);
 
-  const quote: WarrantyQuote | null = useMemo(() => {
+  const cfg = cfgEarly;
+
+  const costQuote: WarrantyQuote | null = useMemo(() => {
     if (!activePlan) return null;
     if (!activePlan.pricingTiers.length) return null;
     return quoteWarranty({
@@ -75,12 +82,24 @@ export function StepWarranty({
     });
   }, [activePlan, tierIndex, termIndex, extras, vehicle]);
 
+  // Customers see retail (cost × markup, with per-cell overrides). When
+  // `showRetailToCustomers` is off, `quote` is null and we render a "Call for
+  // pricing" treatment.
+  const quote: WarrantyQuote | null = useMemo(
+    () => (costQuote ? toRetailQuote(cfg, costQuote) ?? null : null),
+    [costQuote, cfg],
+  );
+  const retailHidden = !cfg.showRetailToCustomers;
+
   // When user changes selection, persist as a draft selection so pricing/sidebar update live.
-  const persistSelection = (q: WarrantyQuote | null) => {
-    if (!q || !activePlan) {
+  const persistSelection = (rawCostQuote: WarrantyQuote | null) => {
+    if (!rawCostQuote || !activePlan) {
       setSelection(null);
       return;
     }
+    // Convert to retail for what the customer is actually charged. If retail
+    // is hidden, fall back to cost (the dealer will quote manually).
+    const q = toRetailQuote(cfg, rawCostQuote) ?? rawCostQuote;
     setSelection({
       planSlug: q.planSlug,
       planName: q.planName,
@@ -363,7 +382,13 @@ export function StepWarranty({
                       <div className="flex-1">
                         <div className="font-medium">{row.label}</div>
                         <div className="text-xs text-muted-foreground">
-                          {included ? "Included at no extra cost" : numeric ? `+$${(v as number).toLocaleString()}` : "Not available on this term"}
+                          {included
+                            ? "Included at no extra cost"
+                            : numeric
+                              ? retailHidden
+                                ? "Call for pricing"
+                                : `+$${(getRetailForAddOn(cfg, activePlan.slug, tierIndex, termIndex, row.label) ?? Math.round((v as number) * (1 + cfg.warrantyMarkupPct / 100))).toLocaleString()}`
+                              : "Not available on this term"}
                         </div>
                       </div>
                     </label>

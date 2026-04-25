@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DealerSidebar } from "@/components/dealer/DealerSidebar";
 import { Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useNewOrderCount, useOrderArrivalToasts } from "@/lib/dealer-notifications";
 
 export const Route = createFileRoute("/dealer")({
   head: () => ({
@@ -15,6 +16,10 @@ export const Route = createFileRoute("/dealer")({
 });
 
 function DealerLayout() {
+  // Surface a sonner toast whenever a brand-new customer order lands.
+  useOrderArrivalToasts();
+  const newCount = useNewOrderCount();
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-muted/30">
@@ -29,9 +34,13 @@ function DealerLayout() {
               </div>
             </div>
             <div className="ml-auto flex items-center gap-3">
-              <button className="relative rounded-full p-2 hover:bg-muted">
+              <button className="relative rounded-full p-2 hover:bg-muted" aria-label="Notifications">
                 <Bell className="h-4 w-4" />
-                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand" />
+                {newCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-brand-foreground">
+                    {newCount}
+                  </span>
+                )}
               </button>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
                 MR

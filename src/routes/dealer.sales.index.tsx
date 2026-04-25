@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { PageHeader } from "@/components/dealer/PageHeader";
 import { sales, type SaleStatus } from "@/data/sales";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { listOrders, updateOrder, addEvent, type Order, type OrderStatus } from "@/lib/orders";
+import { markSalesSeen } from "@/lib/dealer-notifications";
 import { CheckCircle2, FileSignature, Plus, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +42,8 @@ function SalesPage() {
   const totalRevenue = sales.reduce((acc, s) => acc + s.total, 0);
   const orders = useOrders();
   const requestCount = orders.filter((o) => o.status !== "picked_up" && o.status !== "cancelled").length;
+  // Visiting Sales clears the "new orders" badge in the header.
+  useEffect(() => { markSalesSeen(); }, []);
 
   return (
     <div>
@@ -207,6 +210,7 @@ function SaleRequestCard({ order }: { order: Order }) {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs font-semibold">{order.id}</span>
+            <Badge className="bg-brand/15 text-brand hover:bg-brand/15">Online</Badge>
             <Badge className={`${statusCls[order.status]} hover:${statusCls[order.status]}`}>
               {statusLabel[order.status]}
             </Badge>
