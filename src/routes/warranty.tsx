@@ -25,6 +25,7 @@ import {
   type WarrantyPlan,
   type CoverageStatus,
 } from "@/lib/bridgewarranty";
+import { useDealerConfig, toRetailQuote, isPlanEnabled } from "@/lib/dealer-config";
 
 export const Route = createFileRoute("/warranty")({
   head: () => ({
