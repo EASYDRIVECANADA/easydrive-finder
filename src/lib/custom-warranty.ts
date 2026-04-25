@@ -9,6 +9,7 @@
 
 import { useSyncExternalStore } from "react";
 import type { WarrantyPlan, PricingTier } from "./bridgewarranty";
+// ./bridgewarranty resolves to ./bridgewarranty/index.ts
 
 const KEY = "edc.customWarranty.v1";
 const EVT = "edc.customWarranty.updated";
