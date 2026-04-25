@@ -29,6 +29,7 @@ import { Route as DealerInventoryRouteImport } from './routes/dealer.inventory'
 import { Route as DealerEsignatureRouteImport } from './routes/dealer.esignature'
 import { Route as DealerDirectoryRouteImport } from './routes/dealer.directory'
 import { Route as DealerCustomersRouteImport } from './routes/dealer.customers'
+import { Route as DealerConfigurationRouteImport } from './routes/dealer.configuration'
 import { Route as DealerBillingRouteImport } from './routes/dealer.billing'
 import { Route as CheckoutVehicleIdRouteImport } from './routes/checkout.$vehicleId'
 import { Route as DealerSalesIndexRouteImport } from './routes/dealer.sales.index'
@@ -134,6 +135,11 @@ const DealerCustomersRoute = DealerCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => DealerRoute,
 } as any)
+const DealerConfigurationRoute = DealerConfigurationRouteImport.update({
+  id: '/configuration',
+  path: '/configuration',
+  getParentRoute: () => DealerRoute,
+} as any)
 const DealerBillingRoute = DealerBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/warranty': typeof WarrantyRoute
   '/checkout/$vehicleId': typeof CheckoutVehicleIdRoute
   '/dealer/billing': typeof DealerBillingRoute
+  '/dealer/configuration': typeof DealerConfigurationRoute
   '/dealer/customers': typeof DealerCustomersRoute
   '/dealer/directory': typeof DealerDirectoryRoute
   '/dealer/esignature': typeof DealerEsignatureRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/warranty': typeof WarrantyRoute
   '/checkout/$vehicleId': typeof CheckoutVehicleIdRoute
   '/dealer/billing': typeof DealerBillingRoute
+  '/dealer/configuration': typeof DealerConfigurationRoute
   '/dealer/customers': typeof DealerCustomersRoute
   '/dealer/directory': typeof DealerDirectoryRoute
   '/dealer/esignature': typeof DealerEsignatureRoute
@@ -217,6 +225,7 @@ export interface FileRoutesById {
   '/warranty': typeof WarrantyRoute
   '/checkout/$vehicleId': typeof CheckoutVehicleIdRoute
   '/dealer/billing': typeof DealerBillingRoute
+  '/dealer/configuration': typeof DealerConfigurationRoute
   '/dealer/customers': typeof DealerCustomersRoute
   '/dealer/directory': typeof DealerDirectoryRoute
   '/dealer/esignature': typeof DealerEsignatureRoute
@@ -245,6 +254,7 @@ export interface FileRouteTypes {
     | '/warranty'
     | '/checkout/$vehicleId'
     | '/dealer/billing'
+    | '/dealer/configuration'
     | '/dealer/customers'
     | '/dealer/directory'
     | '/dealer/esignature'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/warranty'
     | '/checkout/$vehicleId'
     | '/dealer/billing'
+    | '/dealer/configuration'
     | '/dealer/customers'
     | '/dealer/directory'
     | '/dealer/esignature'
@@ -295,6 +306,7 @@ export interface FileRouteTypes {
     | '/warranty'
     | '/checkout/$vehicleId'
     | '/dealer/billing'
+    | '/dealer/configuration'
     | '/dealer/customers'
     | '/dealer/directory'
     | '/dealer/esignature'
@@ -466,6 +478,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DealerCustomersRouteImport
       parentRoute: typeof DealerRoute
     }
+    '/dealer/configuration': {
+      id: '/dealer/configuration'
+      path: '/configuration'
+      fullPath: '/dealer/configuration'
+      preLoaderRoute: typeof DealerConfigurationRouteImport
+      parentRoute: typeof DealerRoute
+    }
     '/dealer/billing': {
       id: '/dealer/billing'
       path: '/billing'
@@ -499,6 +518,7 @@ declare module '@tanstack/react-router' {
 
 interface DealerRouteChildren {
   DealerBillingRoute: typeof DealerBillingRoute
+  DealerConfigurationRoute: typeof DealerConfigurationRoute
   DealerCustomersRoute: typeof DealerCustomersRoute
   DealerDirectoryRoute: typeof DealerDirectoryRoute
   DealerEsignatureRoute: typeof DealerEsignatureRoute
@@ -514,6 +534,7 @@ interface DealerRouteChildren {
 
 const DealerRouteChildren: DealerRouteChildren = {
   DealerBillingRoute: DealerBillingRoute,
+  DealerConfigurationRoute: DealerConfigurationRoute,
   DealerCustomersRoute: DealerCustomersRoute,
   DealerDirectoryRoute: DealerDirectoryRoute,
   DealerEsignatureRoute: DealerEsignatureRoute,
