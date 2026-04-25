@@ -122,7 +122,7 @@ function ConfigurationPage() {
 function WarrantyConfigTab() {
   const [providerSlug, setProviderSlug] = useState<string | null>(null);
   const [planSlug, setPlanSlug] = useState<string | null>(null);
-  const providers = getProviders();
+  const providers = getAllProviders();
 
   if (!providerSlug) {
     return (
@@ -134,7 +134,7 @@ function WarrantyConfigTab() {
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {providers.map((prov) => {
-              const plans = getPlansByProvider(prov);
+              const plans = getAllPlansByProvider(prov);
               return (
                 <button
                   key={prov}
@@ -218,7 +218,7 @@ function Crumbs({ items }: { items: { label: string; onClick?: () => void }[] })
 }
 
 function PlansList({ provider, onPick }: { provider: string; onPick: (slug: string) => void }) {
-  const plans = getPlansByProvider(provider);
+  const plans = getAllPlansByProvider(provider);
   const cfg = useDealerConfig();
   const [q, setQ] = useState("");
   const filtered = useMemo(
