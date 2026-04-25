@@ -105,6 +105,22 @@ export function setConfig(patch: (cfg: DealerConfig) => DealerConfig) {
 
 // ── React subscription ───────────────────────────────────────────
 
+// Cache the parsed config so useSyncExternalStore receives a stable
+// reference between change notifications. Re-parsing on every getSnapshot()
+// returns a fresh object every render and triggers an infinite loop.
+let cachedConfig: DealerConfig = DEFAULT_CONFIG;
+let cachedRaw: string | null = "__init__";
+
+function getConfigSnapshot(): DealerConfig {
+  if (typeof window === "undefined") return DEFAULT_CONFIG;
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw !== cachedRaw) {
+    cachedRaw = raw;
+    cachedConfig = read();
+  }
+  return cachedConfig;
+}
+
 export function useDealerConfig(): DealerConfig {
   return useSyncExternalStore(
     (cb) => {
@@ -116,7 +132,7 @@ export function useDealerConfig(): DealerConfig {
         window.removeEventListener("storage", handler);
       };
     },
-    () => read(),
+    getConfigSnapshot,
     () => DEFAULT_CONFIG,
   );
 }

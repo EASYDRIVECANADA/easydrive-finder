@@ -24,6 +24,24 @@ export function markSalesSeen() {
   window.dispatchEvent(new Event(EVT));
 }
 
+// Cache the snapshot so useSyncExternalStore gets a stable reference
+// between subscription notifications. Without this, listOrders() returns
+// a fresh array every call and React throws "Maximum update depth exceeded".
+let cachedOrders: Order[] = [];
+let cacheKey = "";
+
+function getOrdersSnapshot(): Order[] {
+  if (typeof window === "undefined") return cachedOrders;
+  const raw = localStorage.getItem("edc.orders.v2") ?? "";
+  if (raw !== cacheKey) {
+    cacheKey = raw;
+    cachedOrders = listOrders();
+  }
+  return cachedOrders;
+}
+
+const EMPTY_ORDERS: Order[] = [];
+
 function useOrders(): Order[] {
   return useSyncExternalStore(
     (cb) => {
@@ -35,8 +53,8 @@ function useOrders(): Order[] {
         window.removeEventListener("storage", h);
       };
     },
-    () => listOrders(),
-    () => [] as Order[],
+    getOrdersSnapshot,
+    () => EMPTY_ORDERS,
   );
 }
 
