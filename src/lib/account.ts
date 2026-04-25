@@ -13,11 +13,25 @@ export type AccountType =
 const KEY = "edc.accountType";
 const listeners = new Set<() => void>();
 
+// Cache snapshots so useSyncExternalStore receives stable references.
+let cachedAccount: AccountType = "Guest";
+let cachedAccountRaw: string | null = "__init__";
+
 function read(): AccountType {
   if (typeof window === "undefined") return "Guest";
   const v = window.localStorage.getItem(KEY);
   if (!v) return "Guest";
   return v as AccountType;
+}
+
+function getAccountSnapshot(): AccountType {
+  if (typeof window === "undefined") return "Guest";
+  const raw = window.localStorage.getItem(KEY);
+  if (raw !== cachedAccountRaw) {
+    cachedAccountRaw = raw;
+    cachedAccount = (raw as AccountType) || "Guest";
+  }
+  return cachedAccount;
 }
 
 export function setAccountType(t: AccountType) {
@@ -32,7 +46,7 @@ export function useAccountType(): AccountType {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    read,
+    getAccountSnapshot,
     () => "Guest",
   );
 }
@@ -108,14 +122,39 @@ export function setPrivateSellerVerification(
   listeners.forEach((cb) => cb());
 }
 
+// Cache verification snapshots
+let cachedVerify: Record<PrivateSellerDoc, boolean> = {
+  ownership: false,
+  drivers_license: false,
+  insurance: false,
+  carfax: false,
+};
+let cachedVerifyRaw: string | null = "__init__";
+const EMPTY_VERIFY: Record<PrivateSellerDoc, boolean> = {
+  ownership: false,
+  drivers_license: false,
+  insurance: false,
+  carfax: false,
+};
+
+function getVerifySnapshot(): Record<PrivateSellerDoc, boolean> {
+  if (typeof window === "undefined") return EMPTY_VERIFY;
+  const raw = window.localStorage.getItem(VERIFY_KEY);
+  if (raw !== cachedVerifyRaw) {
+    cachedVerifyRaw = raw;
+    cachedVerify = getPrivateSellerVerification();
+  }
+  return cachedVerify;
+}
+
 export function usePrivateSellerVerification() {
   return useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    getPrivateSellerVerification,
-    () => ({ ownership: false, drivers_license: false, insurance: false, carfax: false }),
+    getVerifySnapshot,
+    () => EMPTY_VERIFY,
   );
 }
 
