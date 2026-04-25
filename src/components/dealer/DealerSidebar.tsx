@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useNewOrderCount } from "@/lib/dealer-notifications";
 import {
   LayoutDashboard,
   Users,
