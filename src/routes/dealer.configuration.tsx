@@ -295,6 +295,21 @@ function PlansList({ provider, onPick }: { provider: string; onPick: (slug: stri
                   onCheckedChange={(c) => setPlanEnabled(p.slug, c)}
                   aria-label={`Toggle ${p.name}`}
                 />
+                {p.slug.startsWith("custom-") && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      if (confirm(`Delete custom plan "${p.name}"?`)) {
+                        deleteCustomPlan(p.slug);
+                        toast.success("Custom plan deleted");
+                      }
+                    }}
+                    aria-label={`Delete ${p.name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           );
