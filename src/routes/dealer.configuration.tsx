@@ -28,9 +28,6 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
-  getProviders,
-  getPlansByProvider,
-  getPlanBySlug,
   type WarrantyPlan,
 } from "@/lib/bridgewarranty";
 import {
@@ -47,8 +44,18 @@ import {
   getRetail,
   upsertProduct,
   deleteProduct,
+  getAllProviders,
+  getAllPlansByProvider,
+  getPlanBySlug,
   type DealerProductConfig,
 } from "@/lib/dealer-config";
+import {
+  upsertCustomPlan,
+  deleteCustomPlan,
+  blankCustomPlan,
+  blankTier,
+  useCustomWarranty,
+} from "@/lib/custom-warranty";
 
 export const Route = createFileRoute("/dealer/configuration")({
   head: () => ({ meta: [{ title: "Configuration — Dealer Portal" }] }),
@@ -115,19 +122,27 @@ function ConfigurationPage() {
 function WarrantyConfigTab() {
   const [providerSlug, setProviderSlug] = useState<string | null>(null);
   const [planSlug, setPlanSlug] = useState<string | null>(null);
-  const providers = getProviders();
+  const [showAddPlan, setShowAddPlan] = useState(false);
+  // Subscribe so the list re-renders when a custom plan is added/removed.
+  useCustomWarranty();
+  const providers = getAllProviders();
 
   if (!providerSlug) {
     return (
       <div className="space-y-4">
         <Crumbs items={[{ label: "Providers" }]} />
         <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Providers ({providers.length})
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Providers ({providers.length})
+            </div>
+            <Button size="sm" onClick={() => setShowAddPlan(true)}>
+              <Plus className="mr-1.5 h-4 w-4" /> Add custom plan
+            </Button>
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {providers.map((prov) => {
-              const plans = getPlansByProvider(prov);
+              const plans = getAllPlansByProvider(prov);
               return (
                 <button
                   key={prov}
@@ -150,6 +165,16 @@ function WarrantyConfigTab() {
             })}
           </div>
         </div>
+        {showAddPlan && (
+          <CustomPlanDialog
+            onClose={() => setShowAddPlan(false)}
+            onSaved={(slug, prov) => {
+              setShowAddPlan(false);
+              setProviderSlug(prov);
+              setPlanSlug(slug);
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -211,7 +236,7 @@ function Crumbs({ items }: { items: { label: string; onClick?: () => void }[] })
 }
 
 function PlansList({ provider, onPick }: { provider: string; onPick: (slug: string) => void }) {
-  const plans = getPlansByProvider(provider);
+  const plans = getAllPlansByProvider(provider);
   const cfg = useDealerConfig();
   const [q, setQ] = useState("");
   const filtered = useMemo(
@@ -270,6 +295,21 @@ function PlansList({ provider, onPick }: { provider: string; onPick: (slug: stri
                   onCheckedChange={(c) => setPlanEnabled(p.slug, c)}
                   aria-label={`Toggle ${p.name}`}
                 />
+                {p.slug.startsWith("custom-") && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      if (confirm(`Delete custom plan "${p.name}"?`)) {
+                        deleteCustomPlan(p.slug);
+                        toast.success("Custom plan deleted");
+                      }
+                    }}
+                    aria-label={`Delete ${p.name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           );
@@ -861,5 +901,257 @@ function DefaultsTab() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Custom plan creation dialog ─────────────────────────────────
+//
+// Minimal "add a warranty plan from scratch": provider, plan name,
+// per-claim/deductible, list of terms, list of coverage rows w/ cost.
+// Retail is computed via the dealer markup grid the same way brochure plans
+// are — once the plan is created, dealers can edit each retail cell using
+// the same PlanEditor used for A-Protect plans.
+
+function CustomPlanDialog({
+  onClose,
+  onSaved,
+}: {
+  onClose: () => void;
+  onSaved: (slug: string, provider: string) => void;
+}) {
+  const [provider, setProvider] = useState("");
+  const [planName, setPlanName] = useState("");
+  const [perClaim, setPerClaim] = useState(5000);
+  const [deductible, setDeductible] = useState(100);
+  const [terms, setTerms] = useState([
+    { months: 12, km: "20,000" },
+    { months: 24, km: "40,000" },
+  ]);
+  const [rows, setRows] = useState<{ label: string; values: number[] }[]>([
+    { label: "Base Price", values: [0, 0] },
+  ]);
+
+  function setTermCount(n: number) {
+    const next = terms.slice(0, n);
+    while (next.length < n) {
+      const months = (next.length + 1) * 12;
+      next.push({ months, km: `${months * 1.6 * 1000 / 1000}`.replace(/\.0$/, "") + ",000" });
+    }
+    setTerms(next);
+    setRows((rs) =>
+      rs.map((r) => {
+        const v = r.values.slice(0, n);
+        while (v.length < n) v.push(0);
+        return { ...r, values: v };
+      }),
+    );
+  }
+
+  function updateTerm(i: number, patch: Partial<{ months: number; km: string }>) {
+    setTerms((ts) => ts.map((t, idx) => (idx === i ? { ...t, ...patch } : t)));
+  }
+
+  function addRow() {
+    setRows((rs) => [...rs, { label: "New coverage row", values: terms.map(() => 0) }]);
+  }
+  function removeRow(i: number) {
+    if (rows[i].label === "Base Price") return;
+    setRows((rs) => rs.filter((_, idx) => idx !== i));
+  }
+  function updateRow(i: number, patch: Partial<{ label: string }>) {
+    setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+  function updateCell(rowI: number, colI: number, val: number) {
+    setRows((rs) =>
+      rs.map((r, idx) =>
+        idx === rowI
+          ? { ...r, values: r.values.map((v, ci) => (ci === colI ? val : v)) }
+          : r,
+      ),
+    );
+  }
+
+  function save() {
+    if (!provider.trim() || !planName.trim()) {
+      toast.error("Provider and plan name are required");
+      return;
+    }
+    const plan = blankCustomPlan(provider.trim(), planName.trim());
+    plan.pricingTiers = [
+      {
+        ...blankTier(),
+        perClaimAmount: perClaim,
+        deductible,
+        terms: terms.map((t) => ({
+          label: `${t.months} mo / ${t.km} km`,
+          months: t.months,
+          km: t.km,
+        })),
+        rows: rows.map((r) => ({ label: r.label, values: r.values })),
+      },
+    ];
+    upsertCustomPlan(plan);
+    toast.success(`${plan.name} added under ${plan.provider}`);
+    onSaved(plan.slug, plan.provider);
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Add custom warranty plan</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label>Warranty company / provider</Label>
+              <Input
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+                placeholder="e.g. Lubrico, GWC, In-house"
+              />
+            </div>
+            <div>
+              <Label>Plan name</Label>
+              <Input
+                value={planName}
+                onChange={(e) => setPlanName(e.target.value)}
+                placeholder="e.g. Powertrain Plus"
+              />
+            </div>
+            <div>
+              <Label>Per-claim limit ($)</Label>
+              <Input
+                type="number"
+                value={perClaim}
+                onChange={(e) => setPerClaim(Number(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <Label>Deductible ($)</Label>
+              <Input
+                type="number"
+                value={deductible}
+                onChange={(e) => setDeductible(Number(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <Label>Terms ({terms.length})</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={() => setTermCount(Math.max(1, terms.length - 1))}
+                >
+                  −
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={() => setTermCount(Math.min(8, terms.length + 1))}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+            <div className="mt-2 grid gap-2">
+              {terms.map((t, i) => (
+                <div key={i} className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Months</Label>
+                    <Input
+                      type="number"
+                      value={t.months}
+                      onChange={(e) => updateTerm(i, { months: Number(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Kilometres</Label>
+                    <Input
+                      value={t.km}
+                      onChange={(e) => updateTerm(i, { km: e.target.value })}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <Label>Coverage rows & cost (per term)</Label>
+              <Button size="sm" variant="outline" type="button" onClick={addRow}>
+                <Plus className="mr-1 h-3.5 w-3.5" /> Add row
+              </Button>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Enter your dealer cost. Customer-facing retail is calculated from your default
+              markup and can be edited per cell after the plan is saved.
+            </p>
+            <div className="mt-2 overflow-x-auto rounded-xl border border-border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-xs">
+                  <tr>
+                    <th className="p-2 text-left">Row</th>
+                    {terms.map((t, i) => (
+                      <th key={i} className="p-2 text-right">
+                        {t.months}mo
+                      </th>
+                    ))}
+                    <th className="p-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, ri) => (
+                    <tr key={ri} className="border-t border-border">
+                      <td className="p-2">
+                        <Input
+                          value={r.label}
+                          onChange={(e) => updateRow(ri, { label: e.target.value })}
+                          disabled={r.label === "Base Price"}
+                        />
+                      </td>
+                      {r.values.map((v, ci) => (
+                        <td key={ci} className="p-2">
+                          <Input
+                            type="number"
+                            value={v}
+                            onChange={(e) => updateCell(ri, ci, Number(e.target.value) || 0)}
+                            className="text-right"
+                          />
+                        </td>
+                      ))}
+                      <td className="p-2 text-right">
+                        {r.label !== "Base Price" && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            type="button"
+                            onClick={() => removeRow(ri)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={save}>Save plan</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

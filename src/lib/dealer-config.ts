@@ -9,12 +9,33 @@
 import { useSyncExternalStore } from "react";
 import {
   warrantyPlans,
-  getPlanBySlug,
+  getPlanBySlug as getBrochurePlanBySlug,
   type WarrantyPlan,
   type PricingTier,
 } from "./bridgewarranty";
+import { listCustomPlans, getCustomPlanBySlug } from "./custom-warranty";
 import type { AddOn } from "./orders";
 import { ADDONS } from "./orders";
+
+// ── Unified plan lookup (custom + brochure) ──────────────────────
+// All downstream code should use these instead of the brochure-only helpers
+// so dealer-created plans show up everywhere.
+
+export function getAllPlans(): WarrantyPlan[] {
+  return [...listCustomPlans(), ...warrantyPlans];
+}
+
+export function getPlanBySlug(slug: string): WarrantyPlan | undefined {
+  return getCustomPlanBySlug(slug) ?? getBrochurePlanBySlug(slug);
+}
+
+export function getAllProviders(): string[] {
+  return Array.from(new Set(getAllPlans().map((p) => p.provider)));
+}
+
+export function getAllPlansByProvider(provider: string): WarrantyPlan[] {
+  return getAllPlans().filter((p) => p.provider === provider);
+}
 
 const STORAGE_KEY = "edc.dealerConfig.v1";
 const EVT = "edc.dealerConfig.updated";
@@ -323,7 +344,7 @@ export function getDealerProducts(cfg?: DealerConfig): DealerProductConfig[] {
 
 /** Convenience: list every plan in the catalog regardless of grouping. */
 export function listAllPlans(): WarrantyPlan[] {
-  return warrantyPlans;
+  return getAllPlans();
 }
 
 // ── Retail-aware warranty quote ─────────────────────────────────

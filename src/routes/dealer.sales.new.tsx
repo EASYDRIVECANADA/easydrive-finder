@@ -31,8 +31,10 @@ import {
   getRetail,
   getDealerProducts,
   isPlanEnabled,
+  getAllPlans,
+  getPlanBySlug,
 } from "@/lib/dealer-config";
-import { warrantyPlans, getPlanBySlug } from "@/lib/bridgewarranty";
+import { useCustomWarranty } from "@/lib/custom-warranty";
 
 export const Route = createFileRoute("/dealer/sales/new")({
   head: () => ({ meta: [{ title: "New Bill of Sale — Dealer Portal" }] }),
@@ -269,8 +271,10 @@ function Row({ k, v }: { k: string; v: number }) {
 
 function AddWarrantyDialog({ onAdd }: { onAdd: (line: ExtraLine) => void }) {
   const cfg = useDealerConfig();
+  // Subscribe to custom-plan store so newly added plans appear immediately.
+  useCustomWarranty();
   const [open, setOpen] = useState(false);
-  const enabledPlans = warrantyPlans.filter((p) => isPlanEnabled(cfg, p.slug));
+  const enabledPlans = getAllPlans().filter((p) => isPlanEnabled(cfg, p.slug));
   const [planSlug, setPlanSlug] = useState(enabledPlans[0]?.slug ?? "");
   const [tierIndex, setTierIndex] = useState(0);
   const [termIndex, setTermIndex] = useState(0);
