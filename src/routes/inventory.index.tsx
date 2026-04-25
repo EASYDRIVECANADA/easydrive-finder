@@ -3,7 +3,8 @@ import { useMemo, useState } from "react";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { VehicleCard } from "@/components/marketing/VehicleCard";
-import { vehicles, LISTING_TYPE_STYLES, type ListingType } from "@/data/vehicles";
+import { LISTING_TYPE_STYLES, type ListingType } from "@/data/vehicles";
+import { useInventory } from "@/lib/inventory-store";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -22,11 +23,13 @@ export const Route = createFileRoute("/inventory/")({
   component: InventoryPage,
 });
 
-const allMakes = Array.from(new Set(vehicles.map((v) => v.make))).sort();
-const allBodies = Array.from(new Set(vehicles.map((v) => v.bodyType))).sort();
 const allListingTypes: ListingType[] = ["EDC Premier", "Dealer Select", "Fleet Select", "Private Seller"];
 
 function InventoryPage() {
+  const vehicles = useInventory();
+  const allMakes = useMemo(() => Array.from(new Set(vehicles.map((v) => v.make))).sort(), [vehicles]);
+  const allBodies = useMemo(() => Array.from(new Set(vehicles.map((v) => v.bodyType))).sort(), [vehicles]);
+
   const [search, setSearch] = useState("");
   const [makes, setMakes] = useState<string[]>([]);
   const [bodies, setBodies] = useState<string[]>([]);
@@ -44,7 +47,7 @@ function InventoryPage() {
       if (v.year < minYear) return false;
       return true;
     });
-  }, [search, makes, bodies, listingTypes, maxPrice, minYear]);
+  }, [vehicles, search, makes, bodies, listingTypes, maxPrice, minYear]);
 
   const toggle = <T extends string>(list: T[], setList: (v: T[]) => void, val: T) => {
     setList(list.includes(val) ? list.filter((x) => x !== val) : [...list, val]);
