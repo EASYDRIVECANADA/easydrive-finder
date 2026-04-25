@@ -36,7 +36,8 @@ export type WarrantyPlanConfig = {
   >;
 };
 
-export type DealerProductConfig = AddOn & {
+export type DealerProductConfig = Omit<AddOn, "id"> & {
+  id: string;
   /** dealer cost (informational only; retail is what customers see) */
   cost: number;
   /** Visible in the public customer checkout add-ons step */
