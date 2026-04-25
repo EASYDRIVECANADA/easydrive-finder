@@ -24,7 +24,7 @@ const statusBadge: Record<SaleStatus, string> = {
 
 function SalesPage() {
   const totalRevenue = sales.reduce((acc, s) => acc + s.total, 0);
-  const orders = useOrders();
+  const orders = useDealerOrders();
   const requestCount = orders.filter((o) => o.status !== "picked_up" && o.status !== "cancelled").length;
   // Visiting Sales clears the "new orders" badge in the header.
   useEffect(() => { markSalesSeen(); }, []);
