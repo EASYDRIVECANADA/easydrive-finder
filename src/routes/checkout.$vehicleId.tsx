@@ -657,7 +657,7 @@ function StepAddOns({
                     <button
                       key={a.id}
                       type="button"
-                      onClick={() => toggle(a)}
+                      onClick={() => toggle(a as unknown as AddOn)}
                       className={cn(
                         "rounded-2xl border p-4 text-left transition",
                         on ? "border-brand bg-brand/5 ring-2 ring-brand/30" : "border-border bg-card hover:border-foreground/20",
