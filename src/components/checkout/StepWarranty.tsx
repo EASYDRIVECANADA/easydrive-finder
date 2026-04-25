@@ -88,11 +88,14 @@ export function StepWarranty({
   const retailHidden = !cfg.showRetailToCustomers;
 
   // When user changes selection, persist as a draft selection so pricing/sidebar update live.
-  const persistSelection = (q: WarrantyQuote | null) => {
-    if (!q || !activePlan) {
+  const persistSelection = (rawCostQuote: WarrantyQuote | null) => {
+    if (!rawCostQuote || !activePlan) {
       setSelection(null);
       return;
     }
+    // Convert to retail for what the customer is actually charged. If retail
+    // is hidden, fall back to cost (the dealer will quote manually).
+    const q = toRetailQuote(cfg, rawCostQuote) ?? rawCostQuote;
     setSelection({
       planSlug: q.planSlug,
       planName: q.planName,
