@@ -198,7 +198,12 @@ function QuoteResults({
   eligibleSlugs: Set<string>;
   ineligibleReasons: { planSlug: string; reason?: string }[];
 }) {
-  const grouped = getGroupedPlans("A-Protect");
+  const cfg = useDealerConfig();
+  const grouped = getGroupedPlans("A-Protect").filter((p) => {
+    // Hide group if every sub-plan is disabled; otherwise include.
+    if (p.group) return getPlansByGroup(p.group).some((sub) => isPlanEnabled(cfg, sub.slug));
+    return isPlanEnabled(cfg, p.slug);
+  });
   const visible = grouped.filter(
     (p) =>
       p.slug === "top-up" ||
