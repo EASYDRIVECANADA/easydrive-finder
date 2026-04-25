@@ -237,6 +237,16 @@ function NewSale() {
             <Button type="submit" className="mt-5 w-full rounded-full bg-brand text-brand-foreground hover:bg-brand/90">
               Create bill of sale
             </Button>
+            <BillOfSalePreview
+              vehicle={vehicle}
+              salePrice={salePrice}
+              tradeIn={tradeIn}
+              docFee={docFee}
+              licensing={licensing}
+              extras={extras}
+              taxes={taxes}
+              total={total}
+            />
           </div>
         </aside>
       </form>
