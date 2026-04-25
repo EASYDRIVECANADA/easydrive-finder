@@ -378,7 +378,13 @@ export function StepWarranty({
                       <div className="flex-1">
                         <div className="font-medium">{row.label}</div>
                         <div className="text-xs text-muted-foreground">
-                          {included ? "Included at no extra cost" : numeric ? `+$${(v as number).toLocaleString()}` : "Not available on this term"}
+                          {included
+                            ? "Included at no extra cost"
+                            : numeric
+                              ? retailHidden
+                                ? "Call for pricing"
+                                : `+$${(getRetailForAddOn(cfg, activePlan.slug, tierIndex, termIndex, row.label) ?? Math.round((v as number) * (1 + cfg.warrantyMarkupPct / 100))).toLocaleString()}`
+                              : "Not available on this term"}
                         </div>
                       </div>
                     </label>
