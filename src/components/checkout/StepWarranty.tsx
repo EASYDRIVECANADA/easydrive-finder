@@ -62,7 +62,9 @@ export function StepWarranty({
   const [termIndex, setTermIndex] = useState(0);
   const [extras, setExtras] = useState<string[]>([]);
 
-  const quote: WarrantyQuote | null = useMemo(() => {
+  const cfg = useDealerConfig();
+
+  const costQuote: WarrantyQuote | null = useMemo(() => {
     if (!activePlan) return null;
     if (!activePlan.pricingTiers.length) return null;
     return quoteWarranty({
@@ -75,6 +77,15 @@ export function StepWarranty({
       vehicleKm: vehicle.mileage,
     });
   }, [activePlan, tierIndex, termIndex, extras, vehicle]);
+
+  // Customers see retail (cost × markup, with per-cell overrides). When
+  // `showRetailToCustomers` is off, `quote` is null and we render a "Call for
+  // pricing" treatment.
+  const quote: WarrantyQuote | null = useMemo(
+    () => (costQuote ? toRetailQuote(cfg, costQuote) ?? null : null),
+    [costQuote, cfg],
+  );
+  const retailHidden = !cfg.showRetailToCustomers;
 
   // When user changes selection, persist as a draft selection so pricing/sidebar update live.
   const persistSelection = (q: WarrantyQuote | null) => {
