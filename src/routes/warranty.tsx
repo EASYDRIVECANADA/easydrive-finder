@@ -259,7 +259,8 @@ function QuoteCard({
   const [tierIndex, setTierIndex] = useState(0);
   const [termIndex, setTermIndex] = useState(0);
 
-  const quote = useMemo(
+  const cfg = useDealerConfig();
+  const costQuote = useMemo(
     () =>
       quoteWarranty({
         plan: active,
@@ -272,6 +273,11 @@ function QuoteCard({
       }),
     [active, tierIndex, termIndex, vehicle],
   );
+  const quote = useMemo(
+    () => (costQuote ? toRetailQuote(cfg, costQuote) : null),
+    [costQuote, cfg],
+  );
+  const retailHidden = !cfg.showRetailToCustomers;
 
   const tier = active.pricingTiers[tierIndex];
 
