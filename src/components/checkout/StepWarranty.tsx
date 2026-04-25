@@ -46,7 +46,11 @@ export function StepWarranty({
 
   // Powertrain has 4 sub-tiers grouped — show grouped plans, plus expand into
   // sub-plans if Powertrain is the active group.
-  const grouped = getGroupedPlans("A-Protect");
+  const cfgEarly = useDealerConfig();
+  const grouped = getGroupedPlans("A-Protect").filter((p) => {
+    if (p.group) return getPlansByGroup(p.group).some((sub) => isPlanEnabled(cfgEarly, sub.slug));
+    return isPlanEnabled(cfgEarly, p.slug);
+  });
   const plansToShow = grouped.filter(
     (p) => p.slug === "top-up" || eligibleSlugs.has(p.slug) || (p.group && getPlansByGroup(p.group).some((sub) => eligibleSlugs.has(sub.slug))),
   );
