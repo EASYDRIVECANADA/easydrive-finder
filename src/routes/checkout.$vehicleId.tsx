@@ -638,7 +638,7 @@ function StepAddOns({
 
       <div className="mt-6 space-y-6">
         {groups.map((g) => {
-          const items = ADDONS.filter((a) => a.group === g.key);
+          const items = catalog.filter((a) => a.group === g.key);
           return (
             <section key={g.key}>
               <div className="flex items-center justify-between">
