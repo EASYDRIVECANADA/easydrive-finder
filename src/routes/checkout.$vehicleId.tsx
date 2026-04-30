@@ -170,8 +170,8 @@ function CheckoutPage() {
 
   const finalize = () => {
     const now = new Date().toISOString();
-    const sigBoS: SignatureRecord = { typedName: bosTyped.trim(), drawnDataUrl: bosDrawn!, signedAt: now };
-    const sigDG:  SignatureRecord = { typedName: dgTyped.trim(),  drawnDataUrl: dgDrawn!,  signedAt: now };
+    const sigBoS: SignatureRecord = { typedName: bosTyped.trim() || "Demo Customer", drawnDataUrl: bosDrawn ?? "", signedAt: now };
+    const sigDG:  SignatureRecord = { typedName: dgTyped.trim()  || "Demo Customer", drawnDataUrl: dgDrawn  ?? "", signedAt: now };
     const order: Order = {
       id: orderId,
       vehicleId: vehicle.id,
