@@ -302,7 +302,7 @@ function CheckoutPage() {
 
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
           <div>
-            <Stepper current={step} onJump={(i) => i < step && setStep(i)} />
+            <Stepper current={step} onJump={(i) => setStep(i)} />
 
             <div className="mt-6 rounded-3xl border border-border bg-card p-6 sm:p-8">
               {STEPS[step].key === "customer" && (
