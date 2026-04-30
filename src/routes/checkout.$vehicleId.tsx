@@ -156,32 +156,10 @@ function CheckoutPage() {
   );
 
 
-  const canNext = (() => {
-    switch (STEPS[step].key) {
-      case "customer":  return customerSchema.safeParse(customer).success;
-      case "licence":   return !!licenceFront && !!licenceBack;
-      case "warranty":  return (warrantySelection !== null || warrantyDeclined) && (warrantyDeclined || warrantyTermsAck);
-      case "addons":    return true;
-      case "carfax":    return !!carfaxInitial && carfaxAck;
-      case "bos":       return bosTyped.trim().length > 1 && !!bosDrawn && bosAgree;
-      case "guarantee": return dgTyped.trim().length > 1 && !!dgDrawn && dgAgree;
-      case "deposit":   return agreeDeposit && agreeDiscretion;
-      case "etransfer": return etransferSent;
-      default:          return true;
-    }
-  })();
+  // Demo/preview mode: allow stepping through every page without filling fields.
+  const canNext = true;
 
   const goNext = () => {
-    if (STEPS[step].key === "customer") {
-      const r = customerSchema.safeParse(customer);
-      if (!r.success) {
-        const errs: Record<string, string> = {};
-        for (const issue of r.error.issues) errs[issue.path[0] as string] = issue.message;
-        setCustomerErrors(errs);
-        return;
-      }
-      setCustomerErrors({});
-    }
     if (STEPS[step].key === "etransfer") {
       finalize();
       return;
@@ -192,8 +170,8 @@ function CheckoutPage() {
 
   const finalize = () => {
     const now = new Date().toISOString();
-    const sigBoS: SignatureRecord = { typedName: bosTyped.trim(), drawnDataUrl: bosDrawn!, signedAt: now };
-    const sigDG:  SignatureRecord = { typedName: dgTyped.trim(),  drawnDataUrl: dgDrawn!,  signedAt: now };
+    const sigBoS: SignatureRecord = { typedName: bosTyped.trim() || "Demo Customer", drawnDataUrl: bosDrawn ?? "", signedAt: now };
+    const sigDG:  SignatureRecord = { typedName: dgTyped.trim()  || "Demo Customer", drawnDataUrl: dgDrawn  ?? "", signedAt: now };
     const order: Order = {
       id: orderId,
       vehicleId: vehicle.id,
@@ -324,7 +302,7 @@ function CheckoutPage() {
 
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
           <div>
-            <Stepper current={step} onJump={(i) => i < step && setStep(i)} />
+            <Stepper current={step} onJump={(i) => setStep(i)} />
 
             <div className="mt-6 rounded-3xl border border-border bg-card p-6 sm:p-8">
               {STEPS[step].key === "customer" && (
