@@ -156,32 +156,10 @@ function CheckoutPage() {
   );
 
 
-  const canNext = (() => {
-    switch (STEPS[step].key) {
-      case "customer":  return customerSchema.safeParse(customer).success;
-      case "licence":   return !!licenceFront && !!licenceBack;
-      case "warranty":  return (warrantySelection !== null || warrantyDeclined) && (warrantyDeclined || warrantyTermsAck);
-      case "addons":    return true;
-      case "carfax":    return !!carfaxInitial && carfaxAck;
-      case "bos":       return bosTyped.trim().length > 1 && !!bosDrawn && bosAgree;
-      case "guarantee": return dgTyped.trim().length > 1 && !!dgDrawn && dgAgree;
-      case "deposit":   return agreeDeposit && agreeDiscretion;
-      case "etransfer": return etransferSent;
-      default:          return true;
-    }
-  })();
+  // Demo/preview mode: allow stepping through every page without filling fields.
+  const canNext = true;
 
   const goNext = () => {
-    if (STEPS[step].key === "customer") {
-      const r = customerSchema.safeParse(customer);
-      if (!r.success) {
-        const errs: Record<string, string> = {};
-        for (const issue of r.error.issues) errs[issue.path[0] as string] = issue.message;
-        setCustomerErrors(errs);
-        return;
-      }
-      setCustomerErrors({});
-    }
     if (STEPS[step].key === "etransfer") {
       finalize();
       return;
