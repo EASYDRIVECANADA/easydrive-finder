@@ -322,7 +322,7 @@ function CheckoutPage() {
                     year: vehicle.year,
                     make: vehicle.make,
                     model: vehicle.model,
-                    mileage: vehicle.mileage,
+                    mileage: vehicle.odometer ?? 0,
                   }}
                   selection={warrantySelection}
                   setSelection={setWarrantySelection}
